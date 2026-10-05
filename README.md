@@ -2,7 +2,7 @@
 
 Prancheta eletrônica BIM para controle de execução de obra em campo — visualizador 3D por camadas (fôrma, concreto, armadura), quantitativos automáticos e controle de execução (previsto × executado).
 
-**Status atual (MVP):** fundações — sapata isolada, pilar de arranque e viga baldrame, com criação manual de elementos **ou importação de um arquivo IFC** (testado com export do AltoQi Eberick). Importação de PDF, mais tipos de elemento e backend multiusuário ainda não implementados (ver Roadmap).
+**Status atual (MVP):** fundações — sapata isolada, pilar de arranque e viga baldrame, com criação manual de elementos **ou importação de um arquivo IFC** (testado com export do AltoQi Eberick). Login com sincronização entre aparelhos (Firebase) já funciona. Importação de PDF e mais tipos de elemento ainda não implementados (ver Roadmap).
 
 ## Rodando localmente
 
@@ -27,7 +27,24 @@ https://robarbosa301.github.io/Vizion5/
 
 Pra abrir no iPhone/iPad como um app (ícone na tela, tela cheia, sem barra do Safari): abre o link acima no **Safari**, toca no ícone de compartilhar → **"Adicionar à Tela de Início"**.
 
-Importante: isso publica o **código** (a versão mais recente do app) — não sincroniza **dados** entre aparelhos. Cada aparelho guarda os próprios elementos/quantitativos/execução localmente, sem um servidor por trás ainda (ver Roadmap, item de backend).
+## Login e sincronização entre aparelhos
+
+O app usa **Firebase** (Authentication + Firestore) pra login por e-mail/senha e sincronização em tempo real: cada obra fica salva na conta do usuário, não no aparelho — abrir o mesmo login no iPhone e no iPad mostra as mesmas obras, atualizadas ao vivo. Funciona offline também (cache local do Firestore): dá pra continuar editando sem sinal no canteiro, e sincroniza sozinho assim que a conexão volta.
+
+Configuração do projeto Firebase (console.firebase.google.com, projeto `vizion5-39466`):
+- **Authentication → Sign-in method**: Email/senha ativado.
+- **Firestore Database**: regras de segurança restringindo cada usuário à própria subcoleção:
+  ```
+  rules_version = '2';
+  service cloud.firestore {
+    match /databases/{database}/documents {
+      match /users/{userId}/obras/{obraId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+  }
+  ```
+- A chave de configuração do app web (`src/lib/firebase.ts`) não é segredo — é pública por natureza; a segurança real está nas regras acima.
 
 ## O que o MVP faz
 
@@ -125,7 +142,7 @@ src/
 1. **Mais elementos estruturais**: pilares (elevação completa, não só o arranque), vigas de piso, lajes — reusando o mesmo padrão de camadas/quantitativos/execução já criado para fundações, e estendendo o importador de IFC para os pavimentos superiores.
 2. **Importação de IFC — refinar**: melhorar a extração de posição/orientação 3D para prismas com perfil rotacionado (o caso que hoje pode gerar desalinhamento visual entre elementos conectados), e testar contra exports de outros softwares (Revit, ArchiCAD, TQS) além do Eberick.
 3. **Importação de PDF (planta baixa)**: leitura de plantas em PDF é um problema difícil (não é OCR simples — depende de vetores/CAD ou digitalização assistida). Provavelmente exige um passo de "digitalização" onde o usuário marca os elementos sobre a planta, ou integração com um formato intermediário (DXF/DWG) além do PDF puro. Com IFC cobrindo a extração estrutural, o PDF fica mais como referência visual (imagem de fundo) do que fonte de geometria.
-4. **Backend + multiusuário**: hoje os dados vivem só no navegador de quem está usando. Para controlar obra de verdade (várias pessoas, campo x escritório) é necessário um servidor com banco de dados, autenticação e sincronização. O app já é instalável (PWA, ícone próprio, tela cheia — ver seção acima), mas ainda não funciona **offline**: precisa de rede pra carregar a primeira vez (sem service worker ainda), importante pra uso em campo sem sinal.
+4. **Multiusuário por obra**: login + sincronização (Firebase) já funcionam, mas cada conta só vê as próprias obras. Para várias pessoas colaborarem na mesma obra (campo x escritório) falta um modelo de permissões por obra (convidar/compartilhar). O app já é instalável (PWA, ícone próprio, tela cheia — ver seção acima), mas ainda não funciona 100% **offline** na primeira carga: precisa de rede pra baixar o app a primeira vez (sem service worker ainda) — depois de carregado, o cache do Firestore permite continuar editando sem sinal.
 5. **Evidências de execução**: foto/anexo por etapa, geolocalização, assinatura de quem executou/conferiu.
 6. **5D completo**: hoje o app já cobre o "5D" no sentido de quantidade+execução; falta ligar isso a custo (orçamento por elemento, preço unitário de material/mão de obra) e a cronograma (linha do tempo prevista x realizada, curva S).
 7. **Relatórios**: exportar quantitativos e status de execução (PDF/planilha) por elemento, por etapa ou da obra inteira.

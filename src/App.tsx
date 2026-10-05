@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useProjectStore } from './store/useProjectStore';
+import { useAuthStore } from './store/useAuthStore';
 import { Viewer } from './components/Viewer3D/Viewer';
 import { ElementList } from './components/Sidebar/ElementList';
 import { ElementInspector } from './components/Sidebar/ElementInspector';
 import { PainelResumo } from './components/Sidebar/PainelResumo';
 import { LayerToggle } from './components/LayerToggle';
 import { TelaInicio } from './components/TelaInicio';
+import { TelaLogin } from './components/TelaLogin';
 import type { CamadaVisivel } from './types';
 
 type TelaMobile = 'lista' | '3d' | 'detalhes';
@@ -48,13 +50,28 @@ const ABAS_MOBILE: { id: TelaMobile; rotulo: string; icone: JSX.Element }[] = [
 ];
 
 export default function App() {
+  const usuario = useAuthStore((s) => s.usuario);
+  const carregandoAuth = useAuthStore((s) => s.carregando);
+
   const obraAtivaId = useProjectStore((s) => s.obraAtivaId);
   const voltarParaInicio = useProjectStore((s) => s.voltarParaInicio);
+  const iniciarSincronizacao = useProjectStore((s) => s.iniciarSincronizacao);
+  const pararSincronizacao = useProjectStore((s) => s.pararSincronizacao);
   const nomeObra = useProjectStore((s) => s.nomeObra);
   const setNomeObra = useProjectStore((s) => s.setNomeObra);
   const elementos = useProjectStore((s) => s.elementos);
   const elementoSelecionadoId = useProjectStore((s) => s.elementoSelecionadoId);
   const selecionarElemento = useProjectStore((s) => s.selecionarElemento);
+
+  // A sincronização com o Firestore só começa depois de logado (e scoped a esse usuário) —
+  // ao deslogar, limpa tudo da memória pra não vazar dados de uma conta pra outra no mesmo aparelho.
+  useEffect(() => {
+    if (usuario) {
+      iniciarSincronizacao(usuario.uid);
+    } else {
+      pararSincronizacao();
+    }
+  }, [usuario, iniciarSincronizacao, pararSincronizacao]);
 
   const [camadas, setCamadas] = useState<Set<CamadaVisivel>>(new Set(['forma', 'concreto', 'armadura']));
   const [modoIsolado, setModoIsolado] = useState(false);
@@ -79,6 +96,18 @@ export default function App() {
     // Selecionar um elemento (lista ou clique no 3D) leva direto pra tela 3D no celular, pra
     // dar o mesmo retorno visual imediato que o layout de 3 colunas dá no desktop.
     setTelaMobile('3d');
+  }
+
+  if (carregandoAuth) {
+    return (
+      <div className="tela-carregando">
+        <span className="app-nome">Vizion5</span>
+      </div>
+    );
+  }
+
+  if (!usuario) {
+    return <TelaLogin />;
   }
 
   if (!obraAtivaId) {

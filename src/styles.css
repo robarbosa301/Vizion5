@@ -643,6 +643,97 @@ button:disabled {
   margin-bottom: 24px;
 }
 
+.tela-inicio-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tela-carregando {
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.link-botao {
+  background: transparent;
+  color: #7fa6f5;
+  padding: 2px 4px;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.link-botao:hover {
+  background: transparent;
+  text-decoration: underline;
+}
+
+/* Tela de login/cadastro */
+.tela-login {
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 28px 18px calc(28px + env(safe-area-inset-bottom));
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.tela-login-cabecalho {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.form-login {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.form-login input {
+  padding: 12px 14px;
+  background: #1c1f24;
+  border: 1px solid #3a3f47;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.95rem;
+}
+
+.form-login button[type='submit'] {
+  padding: 12px 14px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-top: 4px;
+}
+
+.form-login .link-botao {
+  align-self: center;
+  margin-top: 2px;
+}
+
+.login-erro {
+  color: #ff8a8a;
+  font-size: 0.82rem;
+  margin: 0;
+}
+
+.login-aviso {
+  color: #6fbf83;
+  font-size: 0.82rem;
+  margin: 0;
+}
+
+.login-alternar {
+  text-align: center;
+  margin-top: 18px;
+  color: #9aa2ad;
+  font-size: 0.85rem;
+}
+
 .tela-inicio-cabecalho .app-nome {
   font-size: 0.85rem;
 }

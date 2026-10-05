@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useProjectStore } from '../store/useProjectStore';
+import { useAuthStore } from '../store/useAuthStore';
 
 function formatarData(iso: string): string {
   const d = new Date(iso);
@@ -8,9 +9,12 @@ function formatarData(iso: string): string {
 
 export function TelaInicio() {
   const obras = useProjectStore((s) => s.obras);
+  const carregandoObras = useProjectStore((s) => s.carregandoObras);
   const criarObra = useProjectStore((s) => s.criarObra);
   const abrirObra = useProjectStore((s) => s.abrirObra);
   const excluirObra = useProjectStore((s) => s.excluirObra);
+  const usuario = useAuthStore((s) => s.usuario);
+  const sair = useAuthStore((s) => s.sair);
 
   const [nomeNovaObra, setNomeNovaObra] = useState('');
 
@@ -31,8 +35,15 @@ export function TelaInicio() {
   return (
     <div className="tela-inicio">
       <div className="tela-inicio-cabecalho">
-        <span className="app-nome">Vizion5</span>
-        <p className="tela-inicio-legenda">Visualizador BIM 5D para acompanhamento de obra em campo</p>
+        <div className="tela-inicio-topo">
+          <span className="app-nome">Vizion5</span>
+          <button type="button" className="link-botao" onClick={sair}>
+            Sair
+          </button>
+        </div>
+        <p className="tela-inicio-legenda">
+          {usuario?.email} · dados sincronizados entre seus aparelhos
+        </p>
       </div>
 
       <form
@@ -53,7 +64,9 @@ export function TelaInicio() {
 
       <div className="lista-consultas">
         <h3>Consultas salvas</h3>
-        {obrasOrdenadas.length === 0 ? (
+        {carregandoObras ? (
+          <p className="placeholder">Carregando…</p>
+        ) : obrasOrdenadas.length === 0 ? (
           <p className="placeholder">Nenhuma obra salva ainda. Crie uma acima pra começar.</p>
         ) : (
           <ul>
