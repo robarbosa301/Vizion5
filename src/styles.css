@@ -47,6 +47,16 @@ body {
   flex-shrink: 0;
 }
 
+.app-nome-botao {
+  background: transparent;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.app-nome-botao:hover {
+  background: #2f6fed22;
+}
+
 .obra-nome {
   background: transparent;
   border: none;
@@ -617,6 +627,124 @@ button:disabled {
   color: #8a919c;
   font-size: 0.78rem;
   margin-top: 10px;
+}
+
+/* Tela de início — lista de consultas (obras) salvas + nova consulta */
+.tela-inicio {
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  padding: 28px 18px calc(28px + env(safe-area-inset-bottom));
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.tela-inicio-cabecalho {
+  margin-bottom: 24px;
+}
+
+.tela-inicio-cabecalho .app-nome {
+  font-size: 0.85rem;
+}
+
+.tela-inicio-legenda {
+  color: #9aa2ad;
+  font-size: 0.85rem;
+  margin: 8px 0 0;
+  line-height: 1.4;
+}
+
+.nova-consulta {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 28px;
+}
+
+.nova-consulta input {
+  flex: 1;
+  padding: 10px 12px;
+  background: #1c1f24;
+  border: 1px solid #3a3f47;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.nova-consulta button {
+  white-space: nowrap;
+  padding: 10px 14px;
+  font-weight: 600;
+}
+
+.lista-consultas h3 {
+  margin: 0 0 10px;
+  font-size: 0.78rem;
+  color: #8a919c;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.lista-consultas ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.consulta-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 14px;
+  background: #1c1f24;
+  border: 1px solid #2b2f36;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.consulta-item:hover {
+  border-color: #3d4450;
+  background: #20242b;
+}
+
+.consulta-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.consulta-nome {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #fff;
+}
+
+.consulta-meta {
+  font-size: 0.75rem;
+  color: #8a919c;
+}
+
+.consulta-excluir {
+  flex-shrink: 0;
+  background: transparent;
+  color: #8a919c;
+  padding: 6px;
+  border-radius: 6px;
+}
+
+.consulta-excluir svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.consulta-excluir:hover {
+  background: #b83b3b33;
+  color: #d24747;
 }
 
 /* Barra de abas (celular/tablet) — escondida em telas largas, vira a navegação principal em

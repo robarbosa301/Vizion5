@@ -5,6 +5,7 @@ import { ElementList } from './components/Sidebar/ElementList';
 import { ElementInspector } from './components/Sidebar/ElementInspector';
 import { PainelResumo } from './components/Sidebar/PainelResumo';
 import { LayerToggle } from './components/LayerToggle';
+import { TelaInicio } from './components/TelaInicio';
 import type { CamadaVisivel } from './types';
 
 type TelaMobile = 'lista' | '3d' | 'detalhes';
@@ -47,6 +48,8 @@ const ABAS_MOBILE: { id: TelaMobile; rotulo: string; icone: JSX.Element }[] = [
 ];
 
 export default function App() {
+  const obraAtivaId = useProjectStore((s) => s.obraAtivaId);
+  const voltarParaInicio = useProjectStore((s) => s.voltarParaInicio);
   const nomeObra = useProjectStore((s) => s.nomeObra);
   const setNomeObra = useProjectStore((s) => s.setNomeObra);
   const elementos = useProjectStore((s) => s.elementos);
@@ -78,14 +81,21 @@ export default function App() {
     setTelaMobile('3d');
   }
 
+  if (!obraAtivaId) {
+    return <TelaInicio />;
+  }
+
   return (
     <div className="app">
       <header className="topbar">
         <div className="topbar-identidade">
           {/* Identidade fixa do app (visualizador BIM 5D) — separada do nome da obra/projeto,
               que é editável. Esse app é uma ferramenta própria, não faz parte do Braves Minfield
-              nem de qualquer outro app da Braves. */}
-          <span className="app-nome">Vizion5</span>
+              nem de qualquer outro app da Braves. Tocar nela volta pra tela de início (lista de
+              consultas salvas). */}
+          <button type="button" className="app-nome app-nome-botao" onClick={voltarParaInicio}>
+            ← Vizion5
+          </button>
           <input className="obra-nome" value={nomeObra} onChange={(e) => setNomeObra(e.target.value)} />
         </div>
         <div className="topbar-right">
