@@ -1,0 +1,735 @@
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background: #14161a;
+  color: #e7eaee;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: #1c1f24;
+  border-bottom: 1px solid #2b2f36;
+}
+
+.topbar-identidade {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* Identidade fixa do app — sempre visível, distinta do nome editável da obra/projeto, pra nunca
+   ficar parecendo o mesmo app que o Braves Minfield (ou qualquer outro app da Braves). */
+.app-nome {
+  color: #7fa6f5;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.obra-nome {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 4px;
+  min-width: 0;
+}
+
+.obra-nome:focus {
+  outline: 1px solid #3d4450;
+  border-radius: 4px;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.toggle-isolado {
+  background: #3a3f47;
+  font-size: 0.8rem;
+}
+
+.toggle-isolado.active {
+  background: #2f6fed;
+}
+
+.toggle-isolado:hover {
+  background: #474d57;
+}
+
+.toggle-isolado.active:hover {
+  background: #4a82f0;
+}
+
+.layer-toggle {
+  display: flex;
+  gap: 14px;
+}
+
+.layer-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 220px 1fr 340px;
+  min-height: 0;
+}
+
+.sidebar-left, .sidebar-right {
+  background: #1c1f24;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.sidebar-left {
+  border-right: 1px solid #2b2f36;
+}
+
+.sidebar-right {
+  border-left: 1px solid #2b2f36;
+}
+
+.viewer-area {
+  position: relative;
+  min-width: 0;
+}
+
+.viewer-area canvas {
+  display: block;
+}
+
+/* Element list */
+.add-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.add-row input {
+  width: 100%;
+  padding: 6px 8px;
+  background: #2a2e35;
+  border: 1px solid #3a3f47;
+  border-radius: 4px;
+  color: #fff;
+}
+
+.add-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.add-buttons button {
+  padding: 6px 8px;
+  font-size: 0.8rem;
+}
+
+button {
+  background: #2f6fed;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+button:hover {
+  background: #4a82f0;
+}
+
+button.danger {
+  background: #b83b3b;
+}
+
+button.danger:hover {
+  background: #d24747;
+}
+
+button.secondary {
+  background: #3a3f47;
+  width: 100%;
+}
+
+button.secondary:hover {
+  background: #474d57;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.import-ifc {
+  margin-bottom: 12px;
+}
+
+.badge-ifc {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 5px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  background: #2f6fed33;
+  color: #7fa6f5;
+  border-radius: 3px;
+  vertical-align: middle;
+}
+
+.element-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.element-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 7px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.element-list li:hover {
+  background: #262a31;
+}
+
+.element-list li.selected {
+  background: #2f6fed33;
+  outline: 1px solid #2f6fed;
+}
+
+.element-list li.empty {
+  color: #8a919c;
+  cursor: default;
+  font-size: 0.8rem;
+}
+
+.element-list .tag {
+  font-weight: 600;
+  flex: 1;
+}
+
+.element-list .peso {
+  color: #9aa2ad;
+  font-size: 0.75rem;
+}
+
+.element-list .status {
+  color: #6fbf83;
+  font-size: 0.75rem;
+}
+
+.element-list .empty {
+  color: #8a919c;
+  font-size: 0.8rem;
+  padding: 8px 2px;
+}
+
+.grupo-tipo {
+  margin-bottom: 4px;
+}
+
+.grupo-cabecalho {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 6px;
+  background: #22262c;
+  border: none;
+  border-radius: 4px;
+  color: #e7eaee;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.grupo-cabecalho:hover {
+  background: #282d34;
+}
+
+.grupo-cabecalho .seta {
+  display: inline-block;
+  color: #8a919c;
+  transition: transform 0.12s ease;
+  font-size: 0.7rem;
+}
+
+.grupo-cabecalho .seta.aberta {
+  transform: rotate(90deg);
+}
+
+.grupo-titulo {
+  flex: 1;
+}
+
+.grupo-qtd {
+  color: #8a919c;
+  font-weight: 400;
+}
+
+.grupo-peso {
+  color: #9aa2ad;
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+/* Inspector */
+.inspector-header {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.tag-input {
+  flex: 1;
+  padding: 6px 8px;
+  background: #2a2e35;
+  border: 1px solid #3a3f47;
+  border-radius: 4px;
+  color: #fff;
+  font-weight: 600;
+}
+
+.tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #2b2f36;
+}
+
+.tabs button {
+  flex: 1;
+  background: transparent;
+  color: #9aa2ad;
+  border-radius: 0;
+  border-bottom: 2px solid transparent;
+  padding: 8px 4px;
+}
+
+.tabs button.active {
+  color: #fff;
+  border-bottom-color: #2f6fed;
+}
+
+.tabs button:hover {
+  background: #262a31;
+}
+
+.group {
+  border: 1px solid #2b2f36;
+  border-radius: 6px;
+  padding: 8px 10px 12px;
+  margin-bottom: 12px;
+}
+
+.group legend {
+  font-size: 0.75rem;
+  color: #9aa2ad;
+  padding: 0 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 0.82rem;
+}
+
+.field-input {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.field-input input {
+  width: 80px;
+  padding: 4px 6px;
+  background: #2a2e35;
+  border: 1px solid #3a3f47;
+  border-radius: 4px;
+  color: #fff;
+  text-align: right;
+}
+
+.field-suffix {
+  color: #8a919c;
+  font-size: 0.75rem;
+  width: 30px;
+}
+
+.hint {
+  font-size: 0.72rem;
+  color: #8a919c;
+  line-height: 1.4;
+  margin: 6px 0 0;
+}
+
+/* Quantities */
+.quantities section {
+  margin-bottom: 16px;
+}
+
+.quantities h4 {
+  margin: 0 0 6px;
+  font-size: 0.85rem;
+  color: #cdd3da;
+  border-bottom: 1px solid #2b2f36;
+  padding-bottom: 4px;
+}
+
+.quantities table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.quantities td {
+  padding: 3px 2px;
+  border-bottom: 1px solid #22262c;
+}
+
+.quantities .total {
+  margin-top: 6px;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.peso-total-destaque {
+  background: #20242b;
+  border: 1px solid #3a3f47;
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.peso-total-destaque h4 {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.peso-total-destaque .total {
+  font-size: 1.3rem;
+  color: #7fa6f5;
+  margin: 2px 0 4px;
+}
+
+/* Execution panel */
+.etapa-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 6px;
+  border-bottom: 1px solid #22262c;
+  font-size: 0.85rem;
+}
+
+.etapa-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  cursor: pointer;
+}
+
+.etapa-row.executado {
+  color: #6fbf83;
+}
+
+.etapa-data {
+  font-size: 0.72rem;
+  color: #8a919c;
+}
+
+.volume-real-input {
+  width: 90px;
+  padding: 4px 6px;
+  background: #2a2e35;
+  border: 1px solid #3a3f47;
+  border-radius: 4px;
+  color: #fff;
+}
+
+.rotulo-3d {
+  background: rgba(20, 22, 26, 0.92);
+  border: 1px solid #3a3f47;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #e7eaee;
+  white-space: nowrap;
+  pointer-events: auto;
+  cursor: pointer;
+  transform: translateY(-8px);
+}
+
+.rotulo-3d strong {
+  display: block;
+  margin-bottom: 2px;
+  color: #7fa6f5;
+  font-size: 12.5px;
+}
+
+.rotulo-compacto-3d {
+  background: rgba(20, 22, 26, 0.85);
+  border: 1px solid #3a3f47;
+  border-radius: 10px;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: #cbd2db;
+  white-space: nowrap;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.rotulo-compacto-3d:hover {
+  border-color: #7fa6f5;
+  color: #ffffff;
+}
+
+.cota-3d {
+  background: rgba(14, 30, 36, 0.9);
+  border: 1px solid #1f6a7a;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #a5f3fc;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.placeholder {
+  color: #8a919c;
+  font-size: 0.85rem;
+  padding: 20px 10px;
+  text-align: center;
+}
+
+.painel-resumo {
+  padding: 4px 2px;
+}
+
+.painel-resumo h3 {
+  margin: 4px 0 2px;
+  color: #e7eaee;
+  font-size: 1rem;
+}
+
+.resumo-legenda {
+  color: #8a919c;
+  font-size: 0.78rem;
+  margin: 0 0 12px;
+  line-height: 1.4;
+}
+
+.painel-resumo table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+}
+
+.painel-resumo th {
+  text-align: right;
+  color: #8a919c;
+  font-weight: 500;
+  line-height: 1.3;
+  padding: 4px 3px;
+  border-bottom: 1px solid #2b2f36;
+}
+
+.painel-resumo th:first-child,
+.painel-resumo td:first-child {
+  text-align: left;
+  width: 24%;
+}
+
+.painel-resumo td {
+  text-align: right;
+  color: #cbd2db;
+  padding: 6px 3px;
+  border-bottom: 1px solid #24272d;
+  overflow-wrap: break-word;
+}
+
+.painel-resumo .col-titulo {
+  color: #e7eaee;
+}
+
+.painel-resumo .col-qtd {
+  color: #8a919c;
+  font-size: 0.72rem;
+}
+
+.painel-resumo .linha-destaque td {
+  color: #7fa6f5;
+  font-weight: 600;
+  border-top: 1px solid #3a3f47;
+  border-bottom: none;
+}
+
+.resumo-nota {
+  color: #8a919c;
+  font-size: 0.78rem;
+  margin-top: 10px;
+}
+
+/* Barra de abas (celular/tablet) — escondida em telas largas, vira a navegação principal em
+   telas estreitas (ver media query abaixo). */
+.bottom-tabs {
+  display: none;
+}
+
+/* Celular e tablet em pé (iPad incluso): o layout de 3 colunas não cabe — cada painel vira uma
+   tela cheia, alternada por uma barra de abas embaixo, do jeito que um app de verdade funciona. */
+@media (max-width: 900px) {
+  .app {
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  .topbar {
+    flex-wrap: wrap;
+    row-gap: 6px;
+    padding: 10px 12px;
+  }
+
+  .topbar-identidade {
+    width: 100%;
+  }
+
+  .obra-nome {
+    flex: 1;
+    font-size: 1.05rem;
+  }
+
+  .topbar-right {
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    row-gap: 8px;
+    gap: 10px;
+  }
+
+  .toggle-isolado {
+    min-height: 38px;
+    padding: 6px 12px;
+  }
+
+  .layer-toggle {
+    gap: 12px;
+  }
+
+  .layer-toggle label {
+    padding: 4px 0;
+    font-size: 0.82rem;
+  }
+
+  .layer-toggle input[type='checkbox'] {
+    width: 18px;
+    height: 18px;
+  }
+
+  .body {
+    display: block;
+    position: relative;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: none;
+    border: none !important;
+  }
+
+  .screen.screen--ativa {
+    display: block;
+  }
+
+  .bottom-tabs {
+    display: flex;
+    flex-shrink: 0;
+    background: #1c1f24;
+    border-top: 1px solid #2b2f36;
+    padding: 4px 4px calc(4px + env(safe-area-inset-bottom));
+  }
+
+  .bottom-tabs button {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    background: transparent;
+    color: #8a919c;
+    border-radius: 10px;
+    padding: 6px 4px;
+    font-size: 0.68rem;
+    min-height: 52px;
+  }
+
+  .bottom-tabs button svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .bottom-tabs button.ativa {
+    color: #7fa6f5;
+    background: #2f6fed22;
+  }
+
+  .bottom-tabs button:hover {
+    background: #262a31;
+  }
+
+  .bottom-tabs button.ativa:hover {
+    background: #2f6fed33;
+  }
+}
