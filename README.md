@@ -20,7 +20,7 @@ Abre em `http://localhost:5173`. Layout **estilo aplicativo**, adaptado pro apar
 O app é publicado automaticamente no **GitHub Pages** a cada push no branch `main` (`.github/workflows/deploy.yml` — builda e publica sozinho, não precisa rodar nada manualmente depois de um push). O link fica em:
 
 ```
-https://robarbosa301.github.io/vizion5/
+https://robarbosa301.github.io/Vizion5/
 ```
 
 **Passo único, manual, de configuração** (só precisa fazer uma vez): no GitHub, abre o repositório → **Settings** → **Pages** → em "Build and deployment", em **Source** escolhe **GitHub Actions**. Depois disso, todo push novo já publica sozinho — não precisa repetir esse passo.
