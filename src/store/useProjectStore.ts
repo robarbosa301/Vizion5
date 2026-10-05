@@ -82,6 +82,27 @@ function migrarDadosLocaisSeNecessario(uid: string) {
   localStorage.setItem(flag, '1');
 }
 
+/**
+ * Residencial Eddy — projeto de referência/teste: toda conta nova começa com ele (sapata,
+ * pilar de arranque e viga baldrame já criados), pra ter algo pronto pra explorar, testar a
+ * vista explodida e os quantitativos sem precisar criar elemento por elemento do zero. É uma
+ * obra comum, como qualquer outra — dá pra editar, apagar ou ignorar.
+ */
+function criarObraDemo(): ObraSalva {
+  const agora = new Date().toISOString();
+  return {
+    id: crypto.randomUUID(),
+    nome: 'Residencial Eddy',
+    criadaEm: agora,
+    atualizadaEm: agora,
+    elementos: [
+      criarElementoPadrao('sapata', 'S1', { x: 0, y: 0, z: 0 }),
+      criarElementoPadrao('pilar_arranque', 'P1', { x: 1.5, y: 0, z: 0 }),
+      criarElementoPadrao('viga_baldrame', 'VB1', { x: 3, y: 0, z: 0 }),
+    ],
+  };
+}
+
 export const useProjectStore = create<ProjectState>()((set, get) => ({
   uidAtual: null,
   obras: [],
@@ -96,11 +117,25 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     unsubscribeObras?.();
     set({ uidAtual: uid, carregandoObras: true });
     migrarDadosLocaisSeNecessario(uid);
+
+    let primeiraEmissao = true;
     const q = query(collection(db, 'users', uid, 'obras'), orderBy('atualizadaEm', 'desc'));
     unsubscribeObras = onSnapshot(
       q,
       (snap) => {
         const obras: ObraSalva[] = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ObraSalva, 'id'>) }));
+
+        if (primeiraEmissao) {
+          primeiraEmissao = false;
+          const flagSeed = `vizion5-seed-${uid}`;
+          if (obras.length === 0 && !localStorage.getItem(flagSeed)) {
+            localStorage.setItem(flagSeed, '1');
+            const demo = criarObraDemo();
+            setDoc(obraDocRef(uid, demo.id), demo).catch((e) => console.error('Falha ao criar obra de exemplo:', e));
+            return; // a própria escrita dispara a próxima emissão do snapshot, com a obra já dentro
+          }
+        }
+
         set((state) => {
           const ativa = obras.find((o) => o.id === state.obraAtivaId);
           return {
