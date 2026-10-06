@@ -599,6 +599,13 @@ button:disabled {
   width: 24%;
 }
 
+/* Tabela do resumo hidrossanitário só tem 2 colunas (rótulo + valor) — a largura de 24% da
+   tabela de fundação (pensada pra 5 colunas) deixa o rótulo espremido demais e quebra no meio
+   da palavra (ex. "Comprimen/to total"). */
+.painel-resumo .tabela-hidro td:first-child {
+  width: 62%;
+}
+
 .painel-resumo td {
   text-align: right;
   color: #cbd2db;

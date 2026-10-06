@@ -1,4 +1,4 @@
-import type { PilarArranque, Sapata, VigaBaldrame } from '../../types';
+import type { CaixaDagua, PilarArranque, Sapata, Tubulacao, VigaBaldrame } from '../../types';
 import { NumberField } from './NumberField';
 
 export function SapataFields({ el, onChange }: { el: Sapata; onChange: (patch: Partial<Sapata>) => void }) {
@@ -144,5 +144,55 @@ export function VigaFields({ el, onChange }: { el: VigaBaldrame; onChange: (patc
         <NumberField label="Gancho" suffix="cm" value={a.gancho} onChange={(v) => onChange({ armadura: { ...a, gancho: v } })} />
       </fieldset>
     </>
+  );
+}
+
+export function TubulacaoFields({ el, onChange }: { el: Tubulacao; onChange: (patch: Partial<Tubulacao>) => void }) {
+  const g = el.geometria;
+  return (
+    <fieldset className="group">
+      <legend>Tubulação</legend>
+      <NumberField label="Comprimento" suffix="m" value={g.comprimento} onChange={(v) => onChange({ geometria: { ...g, comprimento: v } })} />
+      <NumberField
+        label="Diâmetro"
+        suffix="mm"
+        step={1}
+        value={el.diametroMm}
+        onChange={(v) => onChange({ diametroMm: v, geometria: { ...g, largura: v / 1000, altura: v / 1000 } })}
+      />
+      <div className="field">
+        <label>Material</label>
+        <div className="field-input">
+          <input className="tag-input" style={{ width: 140 }} value={el.material} onChange={(e) => onChange({ material: e.target.value })} />
+        </div>
+      </div>
+      <NumberField
+        label="Qtd. conexões"
+        suffix="un"
+        step={1}
+        min={0}
+        value={el.qtdConexoes}
+        onChange={(v) => onChange({ qtdConexoes: Math.max(0, Math.round(v)) })}
+      />
+    </fieldset>
+  );
+}
+
+export function CaixaDaguaFields({ el, onChange }: { el: CaixaDagua; onChange: (patch: Partial<CaixaDagua>) => void }) {
+  const g = el.geometria;
+  return (
+    <fieldset className="group">
+      <legend>Caixa d'água</legend>
+      <NumberField label="Capacidade" suffix="L" step={100} value={el.capacidadeLitros} onChange={(v) => onChange({ capacidadeLitros: v })} />
+      <div className="field">
+        <label>Material</label>
+        <div className="field-input">
+          <input className="tag-input" style={{ width: 140 }} value={el.material} onChange={(e) => onChange({ material: e.target.value })} />
+        </div>
+      </div>
+      <NumberField label="Comprimento" suffix="m" value={g.comprimento} onChange={(v) => onChange({ geometria: { ...g, comprimento: v } })} />
+      <NumberField label="Largura" suffix="m" value={g.largura} onChange={(v) => onChange({ geometria: { ...g, largura: v } })} />
+      <NumberField label="Altura" suffix="m" value={g.altura} onChange={(v) => onChange({ geometria: { ...g, altura: v } })} />
+    </fieldset>
   );
 }

@@ -1,4 +1,6 @@
-import type { BimElement } from '../types';
+import type { PilarArranque, Sapata, VigaBaldrame } from '../types';
+
+type ElementoEstrutural = Sapata | PilarArranque | VigaBaldrame;
 import {
   calcularConcreto,
   calcularForma,
@@ -27,7 +29,7 @@ export interface QuantitativoElemento {
  * Sapata com tronco de pirâmide (dado/pedestal) soma o volume/fôrma do bloco da base com
  * os do tronco.
  */
-export function calcularQuantitativo(elemento: BimElement): QuantitativoElemento {
+export function calcularQuantitativo(elemento: ElementoEstrutural): QuantitativoElemento {
   const { geometria } = elemento;
   const baseVolumeM3 = geometria.comprimento * geometria.largura * geometria.altura;
   const baseForma = calcularForma(geometria.comprimento, geometria.largura, geometria.altura);

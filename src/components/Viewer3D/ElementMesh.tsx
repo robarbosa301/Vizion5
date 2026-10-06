@@ -4,7 +4,8 @@ import { ConcretoBox } from './ConcretoBox';
 import { FormaBox } from './FormaBox';
 import { TroncoConcreto, TroncoForma } from './TroncoMesh';
 import { ArmaduraPilarMesh, ArmaduraSapataMesh, ArmaduraVigaMesh } from './ArmaduraMeshes';
-import { corArmadura, corConcreto, corForma } from './statusColor';
+import { TubulacaoMesh, CaixaDaguaMesh } from './HidrossanitarioMeshes';
+import { corArmadura, corConcreto, corForma, corHidrossanitario } from './statusColor';
 import { Edges } from '@react-three/drei';
 
 interface Props {
@@ -105,6 +106,14 @@ export function ElementMesh({ elemento, camadas, selecionado, onSelecionar }: Pr
           cor={corArmadura(elemento)}
           qtdEstriboReal={qtdEstriboReal}
         />
+      )}
+
+      {/* Tubulação/caixa d'água não têm camadas fôrma/concreto/armadura — sempre aparecem. */}
+      {elemento.tipo === 'tubulacao' && (
+        <TubulacaoMesh comprimento={comprimento} diametroM={elemento.diametroMm / 1000} cor={corHidrossanitario(elemento)} />
+      )}
+      {elemento.tipo === 'caixa_dagua' && (
+        <CaixaDaguaMesh comprimento={comprimento} largura={largura} altura={altura} cor={corHidrossanitario(elemento)} />
       )}
     </group>
   );

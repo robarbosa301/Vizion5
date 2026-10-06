@@ -1,5 +1,15 @@
 import { v4 as uuidv4 } from 'uuid';
-import { TRACO_PADRAO, etapasIniciais, type BimElement, type PilarArranque, type Sapata, type VigaBaldrame } from '../types';
+import {
+  TRACO_PADRAO,
+  etapasHidrossanitarias,
+  etapasIniciais,
+  type BimElement,
+  type CaixaDagua,
+  type PilarArranque,
+  type Sapata,
+  type Tubulacao,
+  type VigaBaldrame,
+} from '../types';
 
 export function novaSapata(tag: string, posicao = { x: 0, y: 0, z: 0 }): Sapata {
   return {
@@ -58,6 +68,33 @@ export function novaVigaBaldrame(tag: string, posicao = { x: 0, y: 0, z: 0 }): V
   };
 }
 
+export function novaTubulacao(tag: string, posicao = { x: 0, y: 0, z: 0 }): Tubulacao {
+  return {
+    id: uuidv4(),
+    tipo: 'tubulacao',
+    tag,
+    posicao,
+    etapas: etapasHidrossanitarias(),
+    diametroMm: 25,
+    material: 'PVC soldável',
+    qtdConexoes: 0,
+    geometria: { comprimento: 3, largura: 0.025, altura: 0.025 },
+  };
+}
+
+export function novaCaixaDagua(tag: string, posicao = { x: 0, y: 0, z: 0 }): CaixaDagua {
+  return {
+    id: uuidv4(),
+    tipo: 'caixa_dagua',
+    tag,
+    posicao,
+    etapas: etapasHidrossanitarias(),
+    capacidadeLitros: 1000,
+    material: 'Polietileno',
+    geometria: { comprimento: 1.2, largura: 1.2, altura: 1.1 },
+  };
+}
+
 export function criarElementoPadrao(tipo: BimElement['tipo'], tag: string, posicao?: { x: number; y: number; z: number }): BimElement {
   switch (tipo) {
     case 'sapata':
@@ -66,5 +103,9 @@ export function criarElementoPadrao(tipo: BimElement['tipo'], tag: string, posic
       return novoPilarArranque(tag, posicao);
     case 'viga_baldrame':
       return novaVigaBaldrame(tag, posicao);
+    case 'tubulacao':
+      return novaTubulacao(tag, posicao);
+    case 'caixa_dagua':
+      return novaCaixaDagua(tag, posicao);
   }
 }

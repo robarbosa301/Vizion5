@@ -1,12 +1,14 @@
-import { useMemo, useState } from 'react';
-import type { BimElement } from '../../types';
+import { useState } from 'react';
+import { categoriaDoTipo, type BimElement } from '../../types';
 import { useProjectStore } from '../../store/useProjectStore';
 import { calcularQuantitativo } from '../../lib/quantities';
+import { calcularQuantitativoCaixaDagua, calcularQuantitativoTubulacao } from '../../lib/hydro';
 import { NumberField } from './NumberField';
 import { TracoForm } from './TracoForm';
 import { QuantitiesPanel } from './QuantitiesPanel';
+import { QuantitiesPanelCaixaDagua, QuantitiesPanelTubulacao } from './QuantitiesPanelHidro';
 import { ExecutionPanel } from './ExecutionPanel';
-import { PilarFields, SapataFields, VigaFields } from './GeometryArmaduraForms';
+import { CaixaDaguaFields, PilarFields, SapataFields, TubulacaoFields, VigaFields } from './GeometryArmaduraForms';
 
 type Aba = 'editar' | 'quantitativos' | 'execucao';
 
@@ -14,8 +16,7 @@ export function ElementInspector({ elemento }: { elemento: BimElement }) {
   const atualizarElemento = useProjectStore((s) => s.atualizarElemento);
   const removerElemento = useProjectStore((s) => s.removerElemento);
   const [aba, setAba] = useState<Aba>('editar');
-
-  const quantitativo = useMemo(() => calcularQuantitativo(elemento), [elemento]);
+  const categoria = categoriaDoTipo(elemento.tipo);
 
   function onChange(patch: Partial<BimElement>) {
     atualizarElemento(elemento.id, patch);
@@ -34,7 +35,7 @@ export function ElementInspector({ elemento }: { elemento: BimElement }) {
         </button>
       </div>
 
-      {elemento.classeConcreto && (
+      {categoria === 'estrutural' && elemento.classeConcreto && (
         <p className="hint">
           Projeto (IFC): concreto {elemento.classeConcreto}
           {elemento.cobrimentoProjeto !== undefined && `, cobrimento ${elemento.cobrimentoProjeto}cm`}.
@@ -64,14 +65,24 @@ export function ElementInspector({ elemento }: { elemento: BimElement }) {
           {elemento.tipo === 'sapata' && <SapataFields el={elemento} onChange={onChange} />}
           {elemento.tipo === 'pilar_arranque' && <PilarFields el={elemento} onChange={onChange} />}
           {elemento.tipo === 'viga_baldrame' && <VigaFields el={elemento} onChange={onChange} />}
+          {elemento.tipo === 'tubulacao' && <TubulacaoFields el={elemento} onChange={onChange} />}
+          {elemento.tipo === 'caixa_dagua' && <CaixaDaguaFields el={elemento} onChange={onChange} />}
 
-          <TracoForm traco={elemento.traco} onChange={(traco) => onChange({ traco })} />
+          {(elemento.tipo === 'sapata' || elemento.tipo === 'pilar_arranque' || elemento.tipo === 'viga_baldrame') && (
+            <TracoForm traco={elemento.traco} onChange={(traco) => onChange({ traco })} />
+          )}
         </div>
       )}
 
       {aba === 'quantitativos' && (
         <div className="tab-content">
-          <QuantitiesPanel q={quantitativo} />
+          {elemento.tipo === 'sapata' || elemento.tipo === 'pilar_arranque' || elemento.tipo === 'viga_baldrame' ? (
+            <QuantitiesPanel q={calcularQuantitativo(elemento)} />
+          ) : elemento.tipo === 'tubulacao' ? (
+            <QuantitiesPanelTubulacao q={calcularQuantitativoTubulacao(elemento)} />
+          ) : (
+            <QuantitiesPanelCaixaDagua q={calcularQuantitativoCaixaDagua(elemento)} />
+          )}
         </div>
       )}
 

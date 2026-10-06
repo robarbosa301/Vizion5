@@ -6,6 +6,8 @@ const NOMES_ETAPA: Record<IdEtapa, string> = {
   forma: 'Fôrma',
   armadura: 'Armação',
   concretagem: 'Concretagem',
+  instalacao: 'Instalação',
+  teste: 'Teste (estanqueidade/pressão)',
 };
 
 export function ExecutionPanel({ elemento }: { elemento: BimElement }) {

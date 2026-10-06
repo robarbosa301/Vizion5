@@ -87,6 +87,34 @@ export function extrairGeometria(model: StepModel, representationId: number): Ge
     const args = getArgs(model, extrusionId)!;
     const profileId = args[0]?.k === 'ref' ? args[0].id : undefined;
     const depth = asNum(args[3]) ?? 0;
+    if (profileId !== undefined && getType(model, profileId) === 'IFCCIRCLEPROFILEDEF') {
+      // Perfil circular (tubulação): sem footprint X/Y variável pra centralizar — o perfil já
+      // fica centrado na origem da própria Position. Mas a Position pode ter um offset real
+      // (não é necessariamente a origem local do objeto — comum em IfcPipeSegment, cujo
+      // ObjectPlacement costuma ficar fixo em (0,0,0) e a posição real do trecho vem da
+      // Position da própria extrusão), então transformamos a origem (0,0,0) por ela, igual
+      // ao perfil retangular faz com os cantos do prisma.
+      const profileArgs = getArgs(model, profileId)!;
+      const raio = asNum(profileArgs[3]) ?? 0;
+      const positionId = args[1]?.k === 'ref' ? args[1].id : undefined;
+      const positionTransform = positionId !== undefined ? readAxis2Placement3D(model, positionId) : undefined;
+      if (raio > 0 && depth > 0) {
+        const centroBaseLocal: [number, number, number] = positionTransform
+          ? applyTransform(positionTransform, [0, 0, 0])
+          : [0, 0, 0];
+        return {
+          a: raio * 2,
+          b: raio * 2,
+          depth,
+          origem: 'extrusao',
+          centroBaseLocal,
+          eixoXMundo: positionTransform ? [positionTransform.rot[0][0], positionTransform.rot[1][0], positionTransform.rot[2][0]] : undefined,
+          eixoYMundo: positionTransform ? [positionTransform.rot[0][1], positionTransform.rot[1][1], positionTransform.rot[2][1]] : undefined,
+          eixoZMundo: positionTransform ? [positionTransform.rot[0][2], positionTransform.rot[1][2], positionTransform.rot[2][2]] : undefined,
+        };
+      }
+    }
+
     if (profileId !== undefined && getType(model, profileId) === 'IFCRECTANGLEPROFILEDEF') {
       const profileArgs = getArgs(model, profileId)!;
       const xDim = asNum(profileArgs[3]) ?? 0;

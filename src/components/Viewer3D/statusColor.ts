@@ -16,3 +16,8 @@ export function corForma(elemento: BimElement): string {
 export function corArmadura(elemento: BimElement): string {
   return etapaExecutada(elemento, 'armadura') ? '#d94b4b' : '#8f97a0';
 }
+
+/** Cor da tubulação/caixa d'água conforme status: cinza-azulado = previsto, azul = instalado. */
+export function corHidrossanitario(elemento: BimElement): string {
+  return etapaExecutada(elemento, 'instalacao') ? '#4a90d9' : '#9aa5b1';
+}

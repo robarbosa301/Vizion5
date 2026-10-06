@@ -2,15 +2,28 @@ import { useEffect, useMemo, useState } from 'react';
 import { useProjectStore } from '../../store/useProjectStore';
 import type { BimElement, TipoElemento } from '../../types';
 import { calcularQuantitativo } from '../../lib/quantities';
+import { calcularQuantitativoTubulacao } from '../../lib/hydro';
 import { ImportIfc } from './ImportIfc';
 
 const ROTULOS: Record<TipoElemento, string> = {
   sapata: 'Sapata',
   pilar_arranque: 'Pilar de arranque',
   viga_baldrame: 'Viga baldrame',
+  tubulacao: 'Tubulação',
+  caixa_dagua: "Caixa d'água",
 };
 
-const ORDEM_TIPO: TipoElemento[] = ['sapata', 'pilar_arranque', 'viga_baldrame'];
+const ORDEM_TIPO: TipoElemento[] = ['sapata', 'pilar_arranque', 'viga_baldrame', 'tubulacao', 'caixa_dagua'];
+
+function pesoDoElemento(el: BimElement): number {
+  if (el.tipo === 'sapata' || el.tipo === 'pilar_arranque' || el.tipo === 'viga_baldrame') {
+    return calcularQuantitativo(el).pesoTotalKg;
+  }
+  if (el.tipo === 'tubulacao') {
+    return calcularQuantitativoTubulacao(el).pesoEstimadoKg;
+  }
+  return 0; // caixa d'água: sem peso rastreado, só capacidade
+}
 
 function statusResumo(el: BimElement): string {
   const feitos = el.etapas.filter((e) => e.executado).length;
@@ -36,8 +49,14 @@ export function ElementList() {
   const [expandido, setExpandido] = useState<Set<TipoElemento>>(new Set());
 
   function handleAdicionar(tipo: BimElement['tipo']) {
-    const prefixo = tipo === 'sapata' ? 'S' : tipo === 'pilar_arranque' ? 'P' : 'VB';
-    const tag = novaTag.trim() || `${prefixo}${elementos.length + 1}`;
+    const prefixos: Record<BimElement['tipo'], string> = {
+      sapata: 'S',
+      pilar_arranque: 'P',
+      viga_baldrame: 'VB',
+      tubulacao: 'T',
+      caixa_dagua: 'CX',
+    };
+    const tag = novaTag.trim() || `${prefixos[tipo]}${elementos.length + 1}`;
     adicionar(tipo, tag);
     setNovaTag('');
   }
@@ -61,7 +80,7 @@ export function ElementList() {
 
   const pesos = useMemo(() => {
     const m = new Map<string, number>();
-    for (const el of elementos) m.set(el.id, calcularQuantitativo(el).pesoTotalKg);
+    for (const el of elementos) m.set(el.id, pesoDoElemento(el));
     return m;
   }, [elementos]);
 
@@ -85,6 +104,8 @@ export function ElementList() {
           <button onClick={() => handleAdicionar('sapata')}>+ Sapata</button>
           <button onClick={() => handleAdicionar('pilar_arranque')}>+ Pilar</button>
           <button onClick={() => handleAdicionar('viga_baldrame')}>+ Viga baldrame</button>
+          <button onClick={() => handleAdicionar('tubulacao')}>+ Tubulação</button>
+          <button onClick={() => handleAdicionar('caixa_dagua')}>+ Caixa d'água</button>
         </div>
       </div>
 

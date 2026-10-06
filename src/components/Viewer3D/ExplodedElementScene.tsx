@@ -1,14 +1,18 @@
 import { useState, type ReactNode } from 'react';
 import { Bounds, Html, Line } from '@react-three/drei';
-import type { BimElement } from '../../types';
+import type { BimElement, CaixaDagua, PilarArranque, Sapata, Tubulacao, VigaBaldrame } from '../../types';
 import { calcularQuantitativo } from '../../lib/quantities';
+import { calcularQuantitativoCaixaDagua, calcularQuantitativoTubulacao } from '../../lib/hydro';
 import { calcularConcreto, calcularForma, calcularTroncoPiramide } from '../../lib/concrete';
 import { ConcretoBox } from './ConcretoBox';
 import { FormaBox, ESPESSURA_TABUA } from './FormaBox';
 import { TroncoConcreto, TroncoForma } from './TroncoMesh';
 import { GrupoArmaduraVisual } from './GrupoArmaduraVisual';
+import { TubulacaoMesh, CaixaDaguaMesh } from './HidrossanitarioMeshes';
 import { CotaLinear, CotasCaixa } from './CotaLinear';
-import { corArmadura, corConcreto, corForma } from './statusColor';
+import { corArmadura, corConcreto, corForma, corHidrossanitario } from './statusColor';
+
+type ElementoEstrutural = Sapata | PilarArranque | VigaBaldrame;
 
 function n(v: number, casas = 2) {
   return v.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
@@ -68,6 +72,57 @@ interface NivelDef {
  * A câmera se ajusta sozinha (drei Bounds).
  */
 export function ExplodedElementScene({ elemento }: { elemento: BimElement }) {
+  if (elemento.tipo === 'tubulacao' || elemento.tipo === 'caixa_dagua') {
+    return <ExplodedElementSceneHidro elemento={elemento} />;
+  }
+  return <ExplodedElementSceneEstrutural elemento={elemento} />;
+}
+
+/** Tubulação/caixa d'água não têm camadas pra explodir (sem fôrma/armadura/concreto separados) —
+ * mostra só a peça isolada, com cota e card de quantitativo ao clicar. */
+function ExplodedElementSceneHidro({ elemento }: { elemento: Tubulacao | CaixaDagua }) {
+  const [ativo, setAtivo] = useState(false);
+  const { geometria, tag } = elemento;
+  const titulo =
+    elemento.tipo === 'tubulacao'
+      ? `${tag} · Tubulação ⌀${elemento.diametroMm}mm`
+      : `${tag} · Caixa d'água`;
+  const linhas =
+    elemento.tipo === 'tubulacao'
+      ? (() => {
+          const q = calcularQuantitativoTubulacao(elemento);
+          return [
+            `${q.comprimentoM.toLocaleString('pt-BR')} m · ⌀${q.diametroMm}mm · ${q.material}`,
+            `${q.qtdConexoes} conexões`,
+            q.pesoConfiavel ? `${q.pesoEstimadoKg.toFixed(1)} kg (estimado)` : 'peso: sem tabela pro material',
+          ];
+        })()
+      : (() => {
+          const q = calcularQuantitativoCaixaDagua(elemento);
+          return [`${q.capacidadeLitros.toLocaleString('pt-BR')} L`, q.material];
+        })();
+
+  return (
+    <Bounds fit clip observe margin={1.25} key={elemento.id}>
+      <group onClick={(e) => { e.stopPropagation(); setAtivo((v) => !v); }}>
+        {elemento.tipo === 'tubulacao' ? (
+          <TubulacaoMesh comprimento={geometria.comprimento} diametroM={elemento.diametroMm / 1000} cor={corHidrossanitario(elemento)} />
+        ) : (
+          <CaixaDaguaMesh comprimento={geometria.comprimento} largura={geometria.largura} altura={geometria.altura} cor={corHidrossanitario(elemento)} />
+        )}
+        <RotuloCompacto posicao={[0, geometria.altura + 0.2, 0]} texto={titulo} onClick={() => setAtivo((v) => !v)} />
+        {ativo && (
+          <>
+            <Line points={[[0, geometria.altura / 2, 0], [geometria.comprimento / 2 + 1, geometria.altura / 2, 0]]} color="#7fa6f5" lineWidth={1} dashed dashSize={0.04} gapSize={0.04} />
+            <Rotulo posicao={[geometria.comprimento / 2 + 1, geometria.altura / 2, 0]} titulo={titulo} linhas={linhas} onClick={() => setAtivo((v) => !v)} />
+          </>
+        )}
+      </group>
+    </Bounds>
+  );
+}
+
+function ExplodedElementSceneEstrutural({ elemento }: { elemento: ElementoEstrutural }) {
   const [ativo, setAtivo] = useState<number | null>(null);
   const q = calcularQuantitativo(elemento);
   const { geometria, tag } = elemento;

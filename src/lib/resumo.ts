@@ -1,5 +1,12 @@
-import type { BimElement, TipoElemento } from '../types';
+import type { BimElement, PilarArranque, Sapata, TipoElemento, VigaBaldrame } from '../types';
 import { calcularQuantitativo } from './quantities';
+import { calcularQuantitativoTubulacao } from './hydro';
+
+type ElementoEstrutural = Sapata | PilarArranque | VigaBaldrame;
+
+function ehEstrutural(elemento: BimElement): elemento is ElementoEstrutural {
+  return elemento.tipo === 'sapata' || elemento.tipo === 'pilar_arranque' || elemento.tipo === 'viga_baldrame';
+}
 
 export interface TotaisMateriais {
   quantidadeElementos: number;
@@ -34,7 +41,7 @@ function somar(a: TotaisMateriais, b: TotaisMateriais): TotaisMateriais {
   };
 }
 
-function totaisDoElemento(elemento: BimElement): TotaisMateriais {
+function totaisDoElemento(elemento: ElementoEstrutural): TotaisMateriais {
   const q = calcularQuantitativo(elemento);
   return {
     quantidadeElementos: 1,
@@ -50,15 +57,15 @@ function totaisDoElemento(elemento: BimElement): TotaisMateriais {
 const ORDEM_TIPO: TipoElemento[] = ['sapata', 'pilar_arranque', 'viga_baldrame'];
 
 /**
- * Totais de material da etapa de fundação (hoje, todo elemento do projeto é dessa etapa — sapata,
- * pilar de arranque e viga baldrame), no total geral e por tipo de elemento (quanto é de sapata,
- * quanto é de pilar, quanto é de viga).
+ * Totais de material da etapa de fundação — sapata, pilar de arranque e viga baldrame — no
+ * total geral e por tipo de elemento. Elementos de outras disciplinas (hidrossanitário) têm seu
+ * próprio resumo (ver `resumoHidrossanitario`) e não entram aqui.
  */
 export function calcularResumoEtapa(elementos: BimElement[]): ResumoEtapa {
   const porTipoMap = new Map<TipoElemento, TotaisMateriais>();
   let total = totaisVazios();
 
-  for (const elemento of elementos) {
+  for (const elemento of elementos.filter(ehEstrutural)) {
     const totaisEl = totaisDoElemento(elemento);
     total = somar(total, totaisEl);
     porTipoMap.set(elemento.tipo, somar(porTipoMap.get(elemento.tipo) ?? totaisVazios(), totaisEl));
@@ -67,4 +74,38 @@ export function calcularResumoEtapa(elementos: BimElement[]): ResumoEtapa {
   const porTipo = ORDEM_TIPO.filter((tipo) => porTipoMap.has(tipo)).map((tipo) => ({ tipo, totais: porTipoMap.get(tipo)! }));
 
   return { total, porTipo };
+}
+
+export interface ResumoHidrossanitario {
+  qtdTrechos: number;
+  comprimentoTotalM: number;
+  qtdConexoes: number;
+  pesoEstimadoKg: number;
+  qtdCaixasDagua: number;
+  capacidadeTotalLitros: number;
+}
+
+/** Totais de hidrossanitário (tubulação + caixa d'água) — separado do resumo de fundação. */
+export function calcularResumoHidrossanitario(elementos: BimElement[]): ResumoHidrossanitario {
+  const r: ResumoHidrossanitario = {
+    qtdTrechos: 0,
+    comprimentoTotalM: 0,
+    qtdConexoes: 0,
+    pesoEstimadoKg: 0,
+    qtdCaixasDagua: 0,
+    capacidadeTotalLitros: 0,
+  };
+  for (const el of elementos) {
+    if (el.tipo === 'tubulacao') {
+      const q = calcularQuantitativoTubulacao(el);
+      r.qtdTrechos += 1;
+      r.comprimentoTotalM += q.comprimentoM;
+      r.qtdConexoes += q.qtdConexoes;
+      r.pesoEstimadoKg += q.pesoEstimadoKg;
+    } else if (el.tipo === 'caixa_dagua') {
+      r.qtdCaixasDagua += 1;
+      r.capacidadeTotalLitros += el.capacidadeLitros;
+    }
+  }
+  return r;
 }

@@ -1,12 +1,19 @@
 /**
- * Modelo de dados do MVP: Fundações (sapata isolada), Pilar de arranque e Viga baldrame.
- * Cada elemento carrega geometria, traço de concreto, armadura e etapas de execução
- * (previsto x executado), para permitir o controle 5D em campo.
+ * Modelo de dados do MVP: Fundações (sapata isolada, pilar de arranque, viga baldrame) e,
+ * a partir daqui, Hidrossanitário (tubulação, caixa d'água). Cada elemento carrega geometria
+ * e etapas de execução (previsto x executado) para o controle 5D em campo; os elementos de
+ * concreto (fundação) também carregam traço e armadura — os hidrossanitários não.
  */
 
-export type TipoElemento = 'sapata' | 'pilar_arranque' | 'viga_baldrame';
+export type TipoElementoEstrutural = 'sapata' | 'pilar_arranque' | 'viga_baldrame';
+export type TipoElementoHidrossanitario = 'tubulacao' | 'caixa_dagua';
+export type TipoElemento = TipoElementoEstrutural | TipoElementoHidrossanitario;
 
-export type IdEtapa = 'forma' | 'armadura' | 'concretagem';
+export function categoriaDoTipo(tipo: TipoElemento): 'estrutural' | 'hidrossanitario' {
+  return tipo === 'tubulacao' || tipo === 'caixa_dagua' ? 'hidrossanitario' : 'estrutural';
+}
+
+export type IdEtapa = 'forma' | 'armadura' | 'concretagem' | 'instalacao' | 'teste';
 
 export interface EtapaExecucao {
   etapa: IdEtapa;
@@ -23,6 +30,14 @@ export function etapasIniciais(): EtapaExecucao[] {
     { etapa: 'forma', executado: false },
     { etapa: 'armadura', executado: false },
     { etapa: 'concretagem', executado: false },
+  ];
+}
+
+/** Etapas de um trecho de tubulação ou caixa d'água: instalar e depois testar (estanqueidade/pressão). */
+export function etapasHidrossanitarias(): EtapaExecucao[] {
+  return [
+    { etapa: 'instalacao', executado: false },
+    { etapa: 'teste', executado: false },
   ];
 }
 
@@ -96,7 +111,6 @@ interface ElementoBase {
   id: string;
   tag: string; // identificação de campo, ex. "S1", "P3", "VB2"
   observacoes?: string;
-  traco: TracoConcreto;
   etapas: EtapaExecucao[];
   /** Posição no canteiro, para posicionar no viewer 3D (m). */
   posicao: { x: number; y: number; z: number };
@@ -123,6 +137,7 @@ interface ElementoBase {
 
 export interface Sapata extends ElementoBase {
   tipo: 'sapata';
+  traco: TracoConcreto;
   /** Bloco da base (o retângulo maior, junto ao lastro). */
   geometria: {
     comprimento: number; // m (eixo X)
@@ -144,6 +159,7 @@ export interface Sapata extends ElementoBase {
 
 export interface PilarArranque extends ElementoBase {
   tipo: 'pilar_arranque';
+  traco: TracoConcreto;
   geometria: {
     largura: number; // m (eixo X)
     comprimento: number; // m (eixo Y) — para pilar retangular; quadrado se igual à largura
@@ -154,6 +170,7 @@ export interface PilarArranque extends ElementoBase {
 
 export interface VigaBaldrame extends ElementoBase {
   tipo: 'viga_baldrame';
+  traco: TracoConcreto;
   geometria: {
     comprimento: number; // m, vão
     largura: number; // m
@@ -162,6 +179,39 @@ export interface VigaBaldrame extends ElementoBase {
   armadura: ArmaduraViga;
 }
 
-export type BimElement = Sapata | PilarArranque | VigaBaldrame;
+/**
+ * Trecho de tubulação (um IfcPipeSegment, ou um trecho criado manualmente): elemento linear,
+ * como uma viga, mas sem concreto/fôrma/armadura — só diâmetro, material e comprimento. A
+ * geometria usa o mesmo formato {comprimento, largura, altura} dos elementos estruturais
+ * (aqui largura = altura = diâmetro) só pra reaproveitar o viewer 3D, a seleção e o foco de
+ * câmera, que já lidam com esse formato — na prática é um cilindro de `comprimento` x `diâmetro`.
+ */
+export interface Tubulacao extends ElementoBase {
+  tipo: 'tubulacao';
+  diametroMm: number;
+  material: string; // ex. "PVC soldável", "PPR", "Ferro galvanizado"
+  /** Conexões (joelhos, tês, luvas etc.) associadas a esse trecho — só quantitativo, sem
+   * posição 3D própria (não viraram elementos próprios nesta primeira versão). */
+  qtdConexoes: number;
+  geometria: {
+    comprimento: number; // m
+    largura: number; // m — igual à altura (diâmetro, em metros)
+    altura: number; // m — igual à largura (diâmetro, em metros)
+  };
+}
+
+/** Caixa d'água / reservatório — um volume simples, com capacidade em litros. */
+export interface CaixaDagua extends ElementoBase {
+  tipo: 'caixa_dagua';
+  capacidadeLitros: number;
+  material: string; // ex. "Polietileno", "Fibra", "Concreto"
+  geometria: {
+    comprimento: number; // m
+    largura: number; // m
+    altura: number; // m
+  };
+}
+
+export type BimElement = Sapata | PilarArranque | VigaBaldrame | Tubulacao | CaixaDagua;
 
 export type CamadaVisivel = 'forma' | 'concreto' | 'armadura';

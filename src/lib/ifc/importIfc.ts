@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
-import type { BimElement, GrupoArmaduraResultado, PilarArranque, Sapata, VigaBaldrame } from '../../types';
-import { TRACO_PADRAO, etapasIniciais } from '../../types';
+import type { BimElement, CaixaDagua, GrupoArmaduraResultado, PilarArranque, Sapata, Tubulacao, VigaBaldrame } from '../../types';
+import { TRACO_PADRAO, etapasHidrossanitarias, etapasIniciais } from '../../types';
 import { DENSIDADE_ACO_KG_M3 } from '../concrete';
 import { pesoLinearKgM } from '../steel';
 import { asNum, asRefId, asStr, getArgs, getType, parseStepModel, type Arg, type StepModel } from './stepParser';
@@ -491,6 +491,82 @@ export function importarIfc(texto: string, storeyIdEscolhido?: number): Resultad
         avisos.push(`${pilar.tag}: altura do arranque calculada a partir da viga ficou <= 0, mantendo o trecho modelado no IFC.`);
       }
     }
+  }
+
+  // Tubulação (IfcPipeSegment) e caixa d'água (IfcTank) — disciplina hidrossanitária, sem
+  // concreto/fôrma/armadura. O diâmetro nominal/externo (DN/DE) vem do próprio nome do trecho
+  // quando presente (ex. "Ramal banheiro K01-P1 DN100") — mais confiável que o raio do perfil
+  // circular, que em modelos preliminares costuma ser só um valor esquemático de roteamento, não
+  // a seção real da tubulação.
+  for (const id of idsNoPavimento) {
+    const tipo = getType(model, id);
+    if (tipo !== 'IFCPIPESEGMENT' && tipo !== 'IFCTANK') continue;
+    const args = getArgs(model, id);
+    if (!args) continue;
+
+    const tag = asStr(args[2]) ?? `#${id}`;
+    const objectPlacementId = asRefId(args[5]);
+    const representationId = asRefId(args[6]);
+    if (objectPlacementId === undefined || representationId === undefined) {
+      avisos.push(`${tag}: sem placement/representation, ignorado.`);
+      continue;
+    }
+
+    if (tipo === 'IFCPIPESEGMENT') {
+      const geo = extrairGeometria(model, representationId);
+      if (!geo) {
+        avisos.push(`${tag}: não foi possível extrair geometria da tubulação, ignorada.`);
+        continue;
+      }
+      const posicao = posicaoMundo(model, objectPlacementId, geo.centroBaseLocal, placementCache);
+      const match = tag.match(/D[NE](\d+)/i);
+      const diametroMm = match ? Number(match[1]) : Math.round(geo.a * 10); // geo.a em cm -> mm
+      const material = match?.[0].toUpperCase().startsWith('DE') ? 'PPR' : 'PVC soldável';
+
+      const trecho: Tubulacao = {
+        id: uuidv4(),
+        tipo: 'tubulacao',
+        tag,
+        posicao,
+        etapas: etapasHidrossanitarias(),
+        diametroMm,
+        material,
+        qtdConexoes: 0,
+        geometria: { comprimento: geo.depth / 100, largura: diametroMm / 1000, altura: diametroMm / 1000 },
+        rotacaoY: geo.eixoZMundo ? anguloRotacaoY(geo.eixoZMundo) : undefined,
+      };
+      elementos.push(trecho);
+    } else {
+      // IFCTANK: sem extrusão simples (sólido explícito) — usa o bbox geral da representação.
+      const geo = extrairGeometria(model, representationId);
+      if (!geo) {
+        avisos.push(`${tag}: não foi possível extrair geometria da caixa d'água, ignorada.`);
+        continue;
+      }
+      const posicao = posicaoMundo(model, objectPlacementId, geo.centroBaseLocal, placementCache);
+      const caixa: CaixaDagua = {
+        id: uuidv4(),
+        tipo: 'caixa_dagua',
+        tag,
+        posicao,
+        etapas: etapasHidrossanitarias(),
+        capacidadeLitros: 0, // "volume a dimensionar" em projetos preliminares — editável manualmente
+        material: 'A definir',
+        geometria: { comprimento: geo.a / 100, largura: geo.b / 100, altura: geo.depth / 100 },
+      };
+      elementos.push(caixa);
+    }
+  }
+
+  // Conexões (IfcPipeFitting: joelhos, tês, luvas) — contadas mas não importadas como elementos
+  // próprios nesta primeira versão (associar cada uma ao trecho de tubulação correto exigiria
+  // reconstruir a topologia da rede a partir das conexões port-a-port do IFC). Fica registrado
+  // como aviso, pra não desaparecer silenciosamente do quantitativo.
+  const qtdConexoes = [...idsNoPavimento].filter((id) => getType(model, id) === 'IFCPIPEFITTING').length;
+  if (qtdConexoes > 0) {
+    avisos.push(
+      `${qtdConexoes} conexões (joelhos/tês/luvas) encontradas no arquivo — não importadas individualmente ainda; ajuste "Qtd. conexões" em cada trecho manualmente se precisar do quantitativo exato.`,
+    );
   }
 
   if (elementos.length > 0) {
