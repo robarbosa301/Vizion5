@@ -366,6 +366,38 @@ button:disabled {
   background: #262a31;
 }
 
+/* Abas de disciplina (Estrutura/Hidrossanitário/Elétrica/Arquitetura): "Hidrossanitário" não
+   cabe numa linha só de 4 abas na largura estreita da barra lateral — grade 2x2 em vez do padrão
+   de linha única do .tabs (usado no inspector, que tem só 3 abas curtas). */
+.tabs-disciplina {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  border-bottom: none;
+  margin-top: 2px;
+  margin-bottom: 10px;
+}
+
+.tabs-disciplina button {
+  flex: unset;
+  font-size: 0.72rem;
+  padding: 6px 2px;
+  border: 1px solid #2b2f36;
+  border-radius: 4px;
+  background: #20242b;
+  color: #9aa2ad;
+}
+
+.tabs-disciplina button.active {
+  background: #2f6fed22;
+  border-color: #2f6fed;
+  color: #fff;
+}
+
+.tabs-disciplina button:hover {
+  background: #262a31;
+}
+
 .group {
   border: 1px solid #2b2f36;
   border-radius: 6px;
