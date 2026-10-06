@@ -1,4 +1,16 @@
-import type { CaixaDagua, Tubulacao } from '../types';
+import type { CaixaConcreto, CaixaDagua, RedeHidrossanitaria, Tubulacao } from '../types';
+
+export const NOME_REDE: Record<RedeHidrossanitaria, string> = {
+  esgoto: 'Esgoto',
+  agua_fria: 'Água fria',
+  pluvial: 'Pluvial (água da chuva)',
+};
+
+export const NOME_SUBTIPO_CAIXA_CONCRETO = {
+  gordura: 'Caixa de gordura',
+  passagem: 'Caixa de passagem',
+  fossa: 'Fossa',
+} as const;
 
 /**
  * Peso aproximado (kg/m) de tubo de PVC soldável por diâmetro nominal — tabela de referência
@@ -26,6 +38,7 @@ function pesoEstimadoKgM(diametroMm: number, material: string): number {
 }
 
 export interface QuantitativoTubulacao {
+  rede: RedeHidrossanitaria;
   comprimentoM: number;
   diametroMm: number;
   material: string;
@@ -38,6 +51,7 @@ export interface QuantitativoTubulacao {
 export function calcularQuantitativoTubulacao(elemento: Tubulacao): QuantitativoTubulacao {
   const pesoKgM = pesoEstimadoKgM(elemento.diametroMm, elemento.material);
   return {
+    rede: elemento.rede,
     comprimentoM: elemento.geometria.comprimento,
     diametroMm: elemento.diametroMm,
     material: elemento.material,
@@ -56,6 +70,20 @@ export interface QuantitativoCaixaDagua {
 export function calcularQuantitativoCaixaDagua(elemento: CaixaDagua): QuantitativoCaixaDagua {
   return {
     capacidadeLitros: elemento.capacidadeLitros,
+    material: elemento.material,
+    dimensoesM: elemento.geometria,
+  };
+}
+
+export interface QuantitativoCaixaConcreto {
+  subtipo: CaixaConcreto['subtipo'];
+  material: string;
+  dimensoesM: { comprimento: number; largura: number; altura: number };
+}
+
+export function calcularQuantitativoCaixaConcreto(elemento: CaixaConcreto): QuantitativoCaixaConcreto {
+  return {
+    subtipo: elemento.subtipo,
     material: elemento.material,
     dimensoesM: elemento.geometria,
   };

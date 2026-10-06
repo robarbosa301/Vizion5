@@ -1,4 +1,5 @@
-import type { CaixaDagua, PilarArranque, Sapata, Tubulacao, VigaBaldrame } from '../../types';
+import type { CaixaConcreto, CaixaDagua, PilarArranque, RedeHidrossanitaria, Sapata, SubtipoCaixaConcreto, Tubulacao, VigaBaldrame } from '../../types';
+import { NOME_REDE, NOME_SUBTIPO_CAIXA_CONCRETO } from '../../lib/hydro';
 import { NumberField } from './NumberField';
 
 export function SapataFields({ el, onChange }: { el: Sapata; onChange: (patch: Partial<Sapata>) => void }) {
@@ -152,6 +153,18 @@ export function TubulacaoFields({ el, onChange }: { el: Tubulacao; onChange: (pa
   return (
     <fieldset className="group">
       <legend>Tubulação</legend>
+      <div className="field">
+        <label>Rede</label>
+        <div className="field-input">
+          <select value={el.rede} onChange={(e) => onChange({ rede: e.target.value as RedeHidrossanitaria })}>
+            {(Object.keys(NOME_REDE) as RedeHidrossanitaria[]).map((r) => (
+              <option key={r} value={r}>
+                {NOME_REDE[r]}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
       <NumberField label="Comprimento" suffix="m" value={g.comprimento} onChange={(v) => onChange({ geometria: { ...g, comprimento: v } })} />
       <NumberField
         label="Diâmetro"
@@ -184,6 +197,36 @@ export function CaixaDaguaFields({ el, onChange }: { el: CaixaDagua; onChange: (
     <fieldset className="group">
       <legend>Caixa d'água</legend>
       <NumberField label="Capacidade" suffix="L" step={100} value={el.capacidadeLitros} onChange={(v) => onChange({ capacidadeLitros: v })} />
+      <div className="field">
+        <label>Material</label>
+        <div className="field-input">
+          <input className="tag-input" style={{ width: 140 }} value={el.material} onChange={(e) => onChange({ material: e.target.value })} />
+        </div>
+      </div>
+      <NumberField label="Comprimento" suffix="m" value={g.comprimento} onChange={(v) => onChange({ geometria: { ...g, comprimento: v } })} />
+      <NumberField label="Largura" suffix="m" value={g.largura} onChange={(v) => onChange({ geometria: { ...g, largura: v } })} />
+      <NumberField label="Altura" suffix="m" value={g.altura} onChange={(v) => onChange({ geometria: { ...g, altura: v } })} />
+    </fieldset>
+  );
+}
+
+export function CaixaConcretoFields({ el, onChange }: { el: CaixaConcreto; onChange: (patch: Partial<CaixaConcreto>) => void }) {
+  const g = el.geometria;
+  return (
+    <fieldset className="group">
+      <legend>{NOME_SUBTIPO_CAIXA_CONCRETO[el.subtipo]}</legend>
+      <div className="field">
+        <label>Tipo</label>
+        <div className="field-input">
+          <select value={el.subtipo} onChange={(e) => onChange({ subtipo: e.target.value as SubtipoCaixaConcreto })}>
+            {(Object.keys(NOME_SUBTIPO_CAIXA_CONCRETO) as SubtipoCaixaConcreto[]).map((s) => (
+              <option key={s} value={s}>
+                {NOME_SUBTIPO_CAIXA_CONCRETO[s]}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
       <div className="field">
         <label>Material</label>
         <div className="field-input">

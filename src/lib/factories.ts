@@ -4,9 +4,11 @@ import {
   etapasHidrossanitarias,
   etapasIniciais,
   type BimElement,
+  type CaixaConcreto,
   type CaixaDagua,
   type PilarArranque,
   type Sapata,
+  type SubtipoCaixaConcreto,
   type Tubulacao,
   type VigaBaldrame,
 } from '../types';
@@ -75,6 +77,7 @@ export function novaTubulacao(tag: string, posicao = { x: 0, y: 0, z: 0 }): Tubu
     tag,
     posicao,
     etapas: etapasHidrossanitarias(),
+    rede: 'esgoto',
     diametroMm: 25,
     material: 'PVC soldável',
     qtdConexoes: 0,
@@ -95,6 +98,35 @@ export function novaCaixaDagua(tag: string, posicao = { x: 0, y: 0, z: 0 }): Cai
   };
 }
 
+const MATERIAL_PADRAO_CAIXA_CONCRETO: Record<SubtipoCaixaConcreto, string> = {
+  gordura: 'Concreto pré-moldado',
+  passagem: 'Concreto pré-moldado',
+  fossa: 'Concreto moldado in loco',
+};
+
+const GEOMETRIA_PADRAO_CAIXA_CONCRETO: Record<SubtipoCaixaConcreto, { comprimento: number; largura: number; altura: number }> = {
+  gordura: { comprimento: 0.4, largura: 0.4, altura: 0.5 },
+  passagem: { comprimento: 0.6, largura: 0.6, altura: 0.6 },
+  fossa: { comprimento: 1.5, largura: 1.0, altura: 1.5 },
+};
+
+export function novaCaixaConcreto(
+  tag: string,
+  posicao = { x: 0, y: 0, z: 0 },
+  subtipo: SubtipoCaixaConcreto = 'passagem',
+): CaixaConcreto {
+  return {
+    id: uuidv4(),
+    tipo: 'caixa_concreto',
+    tag,
+    posicao,
+    etapas: etapasHidrossanitarias(),
+    subtipo,
+    material: MATERIAL_PADRAO_CAIXA_CONCRETO[subtipo],
+    geometria: { ...GEOMETRIA_PADRAO_CAIXA_CONCRETO[subtipo] },
+  };
+}
+
 export function criarElementoPadrao(tipo: BimElement['tipo'], tag: string, posicao?: { x: number; y: number; z: number }): BimElement {
   switch (tipo) {
     case 'sapata':
@@ -107,5 +139,7 @@ export function criarElementoPadrao(tipo: BimElement['tipo'], tag: string, posic
       return novaTubulacao(tag, posicao);
     case 'caixa_dagua':
       return novaCaixaDagua(tag, posicao);
+    case 'caixa_concreto':
+      return novaCaixaConcreto(tag, posicao);
   }
 }

@@ -46,6 +46,18 @@ interface ProjectState {
 
 let unsubscribeObras: Unsubscribe | null = null;
 
+/**
+ * Carimbo da última escrita local (por obra) — usado só pra o listener de sincronização (abaixo)
+ * saber ignorar um snapshot "atrasado": como cada edição grava no Firestore sem esperar confirmação
+ * (otimista) e o MESMO listener que escuta mudanças de outros aparelhos também reage à nossa
+ * própria escrita, duas edições em sequência rápida podem fazer o eco de uma escrita MAIS ANTIGA
+ * chegar DEPOIS do estado local já mais novo — sem essa guarda, isso sobrescreve a edição mais
+ * recente com a mais velha (reverte o campo que acabou de ser alterado por um instante, ou, em
+ * campo com conexão ruim, de vez). Only aceita um snapshot da obra ativa se ele for tão novo
+ * quanto (ou mais novo que) a última escrita local que a gente mesmo mandou.
+ */
+let ultimaEscritaLocal: { obraId: string; atualizadaEm: string } | null = null;
+
 function obraDocRef(uid: string, obraId: string) {
   return doc(db, 'users', uid, 'obras', obraId);
 }
@@ -53,8 +65,10 @@ function obraDocRef(uid: string, obraId: string) {
 /** Grava a obra ativa no Firestore (fire-and-forget: a UI já foi atualizada otimisticamente). */
 function persistirObraAtiva(uid: string | null, obraId: string | null, nome: string, elementos: BimElement[]) {
   if (!uid || !obraId) return;
-  setDoc(obraDocRef(uid, obraId), { nome, elementos, atualizadaEm: new Date().toISOString() }, { merge: true }).catch(
-    (e) => console.error('Falha ao salvar obra no Firestore:', e),
+  const atualizadaEm = new Date().toISOString();
+  ultimaEscritaLocal = { obraId, atualizadaEm };
+  setDoc(obraDocRef(uid, obraId), { nome, elementos, atualizadaEm }, { merge: true }).catch((e) =>
+    console.error('Falha ao salvar obra no Firestore:', e),
   );
 }
 
@@ -138,11 +152,21 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
 
         set((state) => {
           const ativa = obras.find((o) => o.id === state.obraAtivaId);
+
+          // Snapshot mais antigo que a última escrita local da obra ativa: eco atrasado de uma
+          // edição anterior chegando depois de uma mais recente já aplicada localmente. Mantém
+          // nome/elementos locais (mais atuais) e só atualiza a lista de obras.
+          const ecoAtrasado =
+            ativa &&
+            ultimaEscritaLocal &&
+            ultimaEscritaLocal.obraId === ativa.id &&
+            ativa.atualizadaEm < ultimaEscritaLocal.atualizadaEm;
+
           return {
             obras,
             carregandoObras: false,
-            nomeObra: ativa ? ativa.nome : state.nomeObra,
-            elementos: ativa ? ativa.elementos : state.elementos,
+            nomeObra: ativa && !ecoAtrasado ? ativa.nome : state.nomeObra,
+            elementos: ativa && !ecoAtrasado ? ativa.elementos : state.elementos,
           };
         });
       },
@@ -173,6 +197,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     const id = crypto.randomUUID();
     const agora = new Date().toISOString();
     const nova: ObraSalva = { id, nome, criadaEm: agora, atualizadaEm: agora, elementos: [] };
+    ultimaEscritaLocal = { obraId: id, atualizadaEm: agora };
     setDoc(obraDocRef(uidAtual, id), nova).catch((e) => console.error('Falha ao criar obra:', e));
     set({ obraAtivaId: id, nomeObra: nome, elementos: [], elementoSelecionadoId: null });
   },

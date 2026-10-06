@@ -1,4 +1,4 @@
-import type { QuantitativoCaixaDagua, QuantitativoTubulacao } from '../../lib/hydro';
+import { NOME_REDE, NOME_SUBTIPO_CAIXA_CONCRETO, type QuantitativoCaixaConcreto, type QuantitativoCaixaDagua, type QuantitativoTubulacao } from '../../lib/hydro';
 
 function n(v: number, casas = 2) {
   return v.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
@@ -18,6 +18,10 @@ export function QuantitiesPanelTubulacao({ q }: { q: QuantitativoTubulacao }) {
         <h4>Tubulação</h4>
         <table>
           <tbody>
+            <tr>
+              <td>Rede</td>
+              <td>{NOME_REDE[q.rede]}</td>
+            </tr>
             <tr>
               <td>Comprimento</td>
               <td>{n(q.comprimentoM)} m</td>
@@ -50,6 +54,34 @@ export function QuantitiesPanelCaixaDagua({ q }: { q: QuantitativoCaixaDagua }) 
       </section>
       <section>
         <h4>Caixa d'água</h4>
+        <table>
+          <tbody>
+            <tr>
+              <td>Material</td>
+              <td>{q.material}</td>
+            </tr>
+            <tr>
+              <td>Dimensões</td>
+              <td>
+                {n(q.dimensoesM.comprimento)} × {n(q.dimensoesM.largura)} × {n(q.dimensoesM.altura)} m
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
+  );
+}
+
+export function QuantitiesPanelCaixaConcreto({ q }: { q: QuantitativoCaixaConcreto }) {
+  return (
+    <div className="quantities">
+      <section className="peso-total-destaque">
+        <h4>Tipo</h4>
+        <p className="total">{NOME_SUBTIPO_CAIXA_CONCRETO[q.subtipo]}</p>
+      </section>
+      <section>
+        <h4>{NOME_SUBTIPO_CAIXA_CONCRETO[q.subtipo]}</h4>
         <table>
           <tbody>
             <tr>

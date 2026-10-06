@@ -4,8 +4,8 @@ import { ConcretoBox } from './ConcretoBox';
 import { FormaBox } from './FormaBox';
 import { TroncoConcreto, TroncoForma } from './TroncoMesh';
 import { ArmaduraPilarMesh, ArmaduraSapataMesh, ArmaduraVigaMesh } from './ArmaduraMeshes';
-import { TubulacaoMesh, CaixaDaguaMesh } from './HidrossanitarioMeshes';
-import { corArmadura, corConcreto, corForma, corHidrossanitario } from './statusColor';
+import { TubulacaoMesh, CaixaVolumeMesh } from './HidrossanitarioMeshes';
+import { corArmadura, corCaixaConcreto, corCaixaDagua, corConcreto, corForma, corTubulacao } from './statusColor';
 import { Edges } from '@react-three/drei';
 
 interface Props {
@@ -21,6 +21,10 @@ export function ElementMesh({ elemento, camadas, selecionado, onSelecionar }: Pr
   const largura = geometria.largura;
   const altura = geometria.altura;
   const tronco = elemento.tipo === 'sapata' ? elemento.tronco : undefined;
+  // Fôrma/concreto só existem pros elementos estruturais (sapata/pilar/viga) — sem essa guarda,
+  // tubulação/caixa d'água/caixa de concreto também ganhavam uma caixa de fôrma (tom amadeirado)
+  // e concreto atrás da própria malha, que acabava dominando visualmente a cor por rede/categoria.
+  const estrutural = elemento.tipo === 'sapata' || elemento.tipo === 'pilar_arranque' || elemento.tipo === 'viga_baldrame';
 
   function handleClick(e: ThreeEvent<MouseEvent>) {
     e.stopPropagation();
@@ -56,7 +60,7 @@ export function ElementMesh({ elemento, camadas, selecionado, onSelecionar }: Pr
           <Edges color="#ffd23f" scale={1} />
         </mesh>
       )}
-      {camadas.has('concreto') && (
+      {estrutural && camadas.has('concreto') && (
         <group>
           <ConcretoBox comprimento={comprimento} altura={altura} largura={largura} cor={corConcreto(elemento)} />
           {tronco && (
@@ -72,7 +76,7 @@ export function ElementMesh({ elemento, camadas, selecionado, onSelecionar }: Pr
           )}
         </group>
       )}
-      {camadas.has('forma') && (
+      {estrutural && camadas.has('forma') && (
         <group>
           <FormaBox comprimento={comprimento} altura={altura} largura={largura} cor={corForma(elemento)} />
           {tronco && (
@@ -108,12 +112,15 @@ export function ElementMesh({ elemento, camadas, selecionado, onSelecionar }: Pr
         />
       )}
 
-      {/* Tubulação/caixa d'água não têm camadas fôrma/concreto/armadura — sempre aparecem. */}
+      {/* Tubulação/caixa d'água/caixa de concreto não têm camadas fôrma/concreto/armadura — sempre aparecem. */}
       {elemento.tipo === 'tubulacao' && (
-        <TubulacaoMesh comprimento={comprimento} diametroM={elemento.diametroMm / 1000} cor={corHidrossanitario(elemento)} />
+        <TubulacaoMesh comprimento={comprimento} diametroM={elemento.diametroMm / 1000} cor={corTubulacao(elemento)} />
       )}
       {elemento.tipo === 'caixa_dagua' && (
-        <CaixaDaguaMesh comprimento={comprimento} largura={largura} altura={altura} cor={corHidrossanitario(elemento)} />
+        <CaixaVolumeMesh comprimento={comprimento} largura={largura} altura={altura} cor={corCaixaDagua(elemento)} />
+      )}
+      {elemento.tipo === 'caixa_concreto' && (
+        <CaixaVolumeMesh comprimento={comprimento} largura={largura} altura={altura} cor={corCaixaConcreto(elemento)} />
       )}
     </group>
   );

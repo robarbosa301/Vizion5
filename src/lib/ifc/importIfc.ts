@@ -1,5 +1,16 @@
 import { v4 as uuidv4 } from 'uuid';
-import type { BimElement, CaixaDagua, GrupoArmaduraResultado, PilarArranque, Sapata, Tubulacao, VigaBaldrame } from '../../types';
+import type {
+  BimElement,
+  CaixaConcreto,
+  CaixaDagua,
+  GrupoArmaduraResultado,
+  PilarArranque,
+  RedeHidrossanitaria,
+  Sapata,
+  SubtipoCaixaConcreto,
+  Tubulacao,
+  VigaBaldrame,
+} from '../../types';
 import { TRACO_PADRAO, etapasHidrossanitarias, etapasIniciais } from '../../types';
 import { DENSIDADE_ACO_KG_M3 } from '../concrete';
 import { pesoLinearKgM } from '../steel';
@@ -493,11 +504,34 @@ export function importarIfc(texto: string, storeyIdEscolhido?: number): Resultad
     }
   }
 
-  // Tubulação (IfcPipeSegment) e caixa d'água (IfcTank) — disciplina hidrossanitária, sem
-  // concreto/fôrma/armadura. O diâmetro nominal/externo (DN/DE) vem do próprio nome do trecho
-  // quando presente (ex. "Ramal banheiro K01-P1 DN100") — mais confiável que o raio do perfil
-  // circular, que em modelos preliminares costuma ser só um valor esquemático de roteamento, não
-  // a seção real da tubulação.
+  // Tubulação (IfcPipeSegment) e caixa d'água/caixa de concreto (IfcTank) — disciplina
+  // hidrossanitária, sem concreto/fôrma/armadura. O diâmetro nominal/externo (DN/DE) vem do
+  // próprio nome do trecho quando presente (ex. "Ramal banheiro K01-P1 DN100") — mais confiável
+  // que o raio do perfil circular, que em modelos preliminares costuma ser só um valor
+  // esquemático de roteamento, não a seção real da tubulação. A rede (esgoto/água fria/pluvial)
+  // também vem do nome — convenção de projeto brasileira comum (prefixo "AF" = água fria,
+  // "AP"/"pluvial"/"chuva" = águas pluviais); na ausência de um prefixo reconhecido, assume
+  // esgoto (a rede mais comum nos trechos de um projeto residencial — vasos, pias, ventilação,
+  // coletor). É só o valor inicial: o campo "Rede" fica editável depois, no inspector.
+  function inferirRedeTubulacao(tag: string): RedeHidrossanitaria {
+    const primeiraPalavra = tag.trim().split(/\s+/)[0]?.toUpperCase() ?? '';
+    const tLower = tag.toLowerCase();
+    if (primeiraPalavra.startsWith('AF') || /água fria|agua fria|alimenta[cç][aã]o/.test(tLower)) return 'agua_fria';
+    if (primeiraPalavra.startsWith('AP') || /pluvial|chuva|condutor|calha/.test(tLower)) return 'pluvial';
+    return 'esgoto';
+  }
+
+  // IfcTank cobre tanto reservatório de água quanto caixas moldadas em concreto (gordura,
+  // passagem, fossa) — o nome decide qual é qual; sem palavra-chave reconhecida, assume
+  // reservatório de água (o uso mais comum de IfcTank).
+  function inferirCaixa(tag: string): { tipo: 'caixa_dagua' } | { tipo: 'caixa_concreto'; subtipo: SubtipoCaixaConcreto } {
+    const t = tag.toLowerCase();
+    if (t.includes('gordura')) return { tipo: 'caixa_concreto', subtipo: 'gordura' };
+    if (t.includes('fossa')) return { tipo: 'caixa_concreto', subtipo: 'fossa' };
+    if (t.includes('passagem') || t.includes('inspe')) return { tipo: 'caixa_concreto', subtipo: 'passagem' };
+    return { tipo: 'caixa_dagua' };
+  }
+
   for (const id of idsNoPavimento) {
     const tipo = getType(model, id);
     if (tipo !== 'IFCPIPESEGMENT' && tipo !== 'IFCTANK') continue;
@@ -529,6 +563,7 @@ export function importarIfc(texto: string, storeyIdEscolhido?: number): Resultad
         tag,
         posicao,
         etapas: etapasHidrossanitarias(),
+        rede: inferirRedeTubulacao(tag),
         diametroMm,
         material,
         qtdConexoes: 0,
@@ -540,21 +575,37 @@ export function importarIfc(texto: string, storeyIdEscolhido?: number): Resultad
       // IFCTANK: sem extrusão simples (sólido explícito) — usa o bbox geral da representação.
       const geo = extrairGeometria(model, representationId);
       if (!geo) {
-        avisos.push(`${tag}: não foi possível extrair geometria da caixa d'água, ignorada.`);
+        avisos.push(`${tag}: não foi possível extrair geometria da caixa, ignorada.`);
         continue;
       }
       const posicao = posicaoMundo(model, objectPlacementId, geo.centroBaseLocal, placementCache);
-      const caixa: CaixaDagua = {
-        id: uuidv4(),
-        tipo: 'caixa_dagua',
-        tag,
-        posicao,
-        etapas: etapasHidrossanitarias(),
-        capacidadeLitros: 0, // "volume a dimensionar" em projetos preliminares — editável manualmente
-        material: 'A definir',
-        geometria: { comprimento: geo.a / 100, largura: geo.b / 100, altura: geo.depth / 100 },
-      };
-      elementos.push(caixa);
+      const geometria = { comprimento: geo.a / 100, largura: geo.b / 100, altura: geo.depth / 100 };
+      const classificacao = inferirCaixa(tag);
+      if (classificacao.tipo === 'caixa_dagua') {
+        const caixa: CaixaDagua = {
+          id: uuidv4(),
+          tipo: 'caixa_dagua',
+          tag,
+          posicao,
+          etapas: etapasHidrossanitarias(),
+          capacidadeLitros: 0, // "volume a dimensionar" em projetos preliminares — editável manualmente
+          material: 'A definir',
+          geometria,
+        };
+        elementos.push(caixa);
+      } else {
+        const caixa: CaixaConcreto = {
+          id: uuidv4(),
+          tipo: 'caixa_concreto',
+          tag,
+          posicao,
+          etapas: etapasHidrossanitarias(),
+          subtipo: classificacao.subtipo,
+          material: 'A definir',
+          geometria,
+        };
+        elementos.push(caixa);
+      }
     }
   }
 

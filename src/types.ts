@@ -6,12 +6,24 @@
  */
 
 export type TipoElementoEstrutural = 'sapata' | 'pilar_arranque' | 'viga_baldrame';
-export type TipoElementoHidrossanitario = 'tubulacao' | 'caixa_dagua';
+export type TipoElementoHidrossanitario = 'tubulacao' | 'caixa_dagua' | 'caixa_concreto';
 export type TipoElemento = TipoElementoEstrutural | TipoElementoHidrossanitario;
 
 export function categoriaDoTipo(tipo: TipoElemento): 'estrutural' | 'hidrossanitario' {
-  return tipo === 'tubulacao' || tipo === 'caixa_dagua' ? 'hidrossanitario' : 'estrutural';
+  return tipo === 'tubulacao' || tipo === 'caixa_dagua' || tipo === 'caixa_concreto' ? 'hidrossanitario' : 'estrutural';
 }
+
+/**
+ * Rede a que um trecho de tubulação pertence — não são todas "iguais": esgoto, água fria
+ * (alimentação) e pluvial (água da chuva) são sistemas fisicamente separados na obra, com cor
+ * de tubo própria (convenção de obra: esgoto em branco/cinza, água fria em marrom, pluvial em
+ * azul), então o elemento precisa saber a qual rede pertence — não só o diâmetro/material.
+ */
+export type RedeHidrossanitaria = 'esgoto' | 'agua_fria' | 'pluvial';
+
+/** Subtipo de uma caixa de concreto — todas moldadas/pré-moldadas em concreto, ao contrário da
+ * caixa d'água (plástico/fibra). */
+export type SubtipoCaixaConcreto = 'gordura' | 'passagem' | 'fossa';
 
 export type IdEtapa = 'forma' | 'armadura' | 'concretagem' | 'instalacao' | 'teste';
 
@@ -188,6 +200,8 @@ export interface VigaBaldrame extends ElementoBase {
  */
 export interface Tubulacao extends ElementoBase {
   tipo: 'tubulacao';
+  /** Rede física a que o trecho pertence (esgoto / água fria / pluvial) — define a cor do tubo. */
+  rede: RedeHidrossanitaria;
   diametroMm: number;
   material: string; // ex. "PVC soldável", "PPR", "Ferro galvanizado"
   /** Conexões (joelhos, tês, luvas etc.) associadas a esse trecho — só quantitativo, sem
@@ -200,11 +214,11 @@ export interface Tubulacao extends ElementoBase {
   };
 }
 
-/** Caixa d'água / reservatório — um volume simples, com capacidade em litros. */
+/** Caixa d'água / reservatório — um volume simples, com capacidade em litros. Sempre azul. */
 export interface CaixaDagua extends ElementoBase {
   tipo: 'caixa_dagua';
   capacidadeLitros: number;
-  material: string; // ex. "Polietileno", "Fibra", "Concreto"
+  material: string; // ex. "Polietileno", "Fibra"
   geometria: {
     comprimento: number; // m
     largura: number; // m
@@ -212,6 +226,20 @@ export interface CaixaDagua extends ElementoBase {
   };
 }
 
-export type BimElement = Sapata | PilarArranque | VigaBaldrame | Tubulacao | CaixaDagua;
+/** Caixa de gordura, de passagem/inspeção ou fossa — moldadas em concreto, ao contrário da
+ * caixa d'água. Mesma geometria simples (volume), já que o que muda entre elas é a função, não
+ * a forma de modelar. */
+export interface CaixaConcreto extends ElementoBase {
+  tipo: 'caixa_concreto';
+  subtipo: SubtipoCaixaConcreto;
+  material: string; // ex. "Concreto moldado in loco", "Concreto pré-moldado"
+  geometria: {
+    comprimento: number; // m
+    largura: number; // m
+    altura: number; // m
+  };
+}
+
+export type BimElement = Sapata | PilarArranque | VigaBaldrame | Tubulacao | CaixaDagua | CaixaConcreto;
 
 export type CamadaVisivel = 'forma' | 'concreto' | 'armadura';

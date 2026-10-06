@@ -1,5 +1,6 @@
-import type { BimElement, TipoElemento } from '../../types';
+import type { BimElement, RedeHidrossanitaria, TipoElemento } from '../../types';
 import { calcularResumoEtapa, calcularResumoHidrossanitario, type TotaisMateriais } from '../../lib/resumo';
+import { NOME_REDE } from '../../lib/hydro';
 
 const ROTULO_TIPO: Record<TipoElemento, string> = {
   sapata: 'Sapatas',
@@ -7,7 +8,10 @@ const ROTULO_TIPO: Record<TipoElemento, string> = {
   viga_baldrame: 'Vigas',
   tubulacao: 'Tubulação',
   caixa_dagua: "Caixa d'água",
+  caixa_concreto: 'Caixa de concreto',
 };
+
+const ORDEM_REDE: RedeHidrossanitaria[] = ['esgoto', 'agua_fria', 'pluvial'];
 
 function n(v: number, casas = 2) {
   return v.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
@@ -39,7 +43,7 @@ export function PainelResumo({ elementos }: { elementos: BimElement[] }) {
   }
 
   const temEstrutural = elementos.some((e) => e.tipo === 'sapata' || e.tipo === 'pilar_arranque' || e.tipo === 'viga_baldrame');
-  const temHidro = elementos.some((e) => e.tipo === 'tubulacao' || e.tipo === 'caixa_dagua');
+  const temHidro = elementos.some((e) => e.tipo === 'tubulacao' || e.tipo === 'caixa_dagua' || e.tipo === 'caixa_concreto');
   const resumo = temEstrutural ? calcularResumoEtapa(elementos) : null;
   const resumoHidro = temHidro ? calcularResumoHidrossanitario(elementos) : null;
 
@@ -73,7 +77,7 @@ export function PainelResumo({ elementos }: { elementos: BimElement[] }) {
       {resumoHidro && (
         <>
           <h3 style={resumo ? { marginTop: 20 } : undefined}>Etapa: Hidrossanitário</h3>
-          <p className="resumo-legenda">Tubulação e caixa d'água — totais da etapa.</p>
+          <p className="resumo-legenda">Tubulação (por rede), caixa d'água e caixas de concreto — totais da etapa.</p>
           <table className="tabela-hidro">
             <tbody>
               <tr>
@@ -84,6 +88,12 @@ export function PainelResumo({ elementos }: { elementos: BimElement[] }) {
                 <td className="col-titulo">Comprimento total</td>
                 <td>{n(resumoHidro.comprimentoTotalM)} m</td>
               </tr>
+              {ORDEM_REDE.filter((rede) => resumoHidro.comprimentoPorRedeM[rede] > 0).map((rede) => (
+                <tr key={rede}>
+                  <td className="col-titulo col-sub">— {NOME_REDE[rede]}</td>
+                  <td>{n(resumoHidro.comprimentoPorRedeM[rede])} m</td>
+                </tr>
+              ))}
               <tr>
                 <td className="col-titulo">Conexões</td>
                 <td>{resumoHidro.qtdConexoes}</td>
@@ -99,6 +109,10 @@ export function PainelResumo({ elementos }: { elementos: BimElement[] }) {
               <tr>
                 <td className="col-titulo">Capacidade total</td>
                 <td>{n(resumoHidro.capacidadeTotalLitros, 0)} L</td>
+              </tr>
+              <tr>
+                <td className="col-titulo">Caixas de concreto (gordura/passagem/fossa)</td>
+                <td>{resumoHidro.qtdCaixasConcreto}</td>
               </tr>
             </tbody>
           </table>

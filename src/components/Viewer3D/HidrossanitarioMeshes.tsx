@@ -19,15 +19,17 @@ export function TubulacaoMesh({ comprimento, diametroM, cor }: TubulacaoProps) {
   );
 }
 
-interface CaixaDaguaProps {
+interface CaixaVolumeProps {
   comprimento: number; // m
   largura: number; // m
   altura: number; // m
   cor: string;
 }
 
-/** Caixa d'água: um volume simples (a forma real — cilíndrica ou retangular — varia por fabricante). */
-export function CaixaDaguaMesh({ comprimento, largura, altura, cor }: CaixaDaguaProps) {
+/** Caixa (d'água, de gordura, de passagem ou fossa): um volume simples — a forma real varia por
+ * fabricante/execução (cilíndrica ou retangular, pré-moldada ou moldada in loco), o que muda
+ * entre os tipos aqui é só a cor (ver statusColor.ts). */
+export function CaixaVolumeMesh({ comprimento, largura, altura, cor }: CaixaVolumeProps) {
   return (
     <mesh position={[0, altura / 2, 0]} castShadow receiveShadow>
       <boxGeometry args={[comprimento, altura, largura]} />

@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { categoriaDoTipo, type BimElement } from '../../types';
 import { useProjectStore } from '../../store/useProjectStore';
 import { calcularQuantitativo } from '../../lib/quantities';
-import { calcularQuantitativoCaixaDagua, calcularQuantitativoTubulacao } from '../../lib/hydro';
+import { calcularQuantitativoCaixaConcreto, calcularQuantitativoCaixaDagua, calcularQuantitativoTubulacao } from '../../lib/hydro';
 import { NumberField } from './NumberField';
 import { TracoForm } from './TracoForm';
 import { QuantitiesPanel } from './QuantitiesPanel';
-import { QuantitiesPanelCaixaDagua, QuantitiesPanelTubulacao } from './QuantitiesPanelHidro';
+import { QuantitiesPanelCaixaConcreto, QuantitiesPanelCaixaDagua, QuantitiesPanelTubulacao } from './QuantitiesPanelHidro';
 import { ExecutionPanel } from './ExecutionPanel';
-import { CaixaDaguaFields, PilarFields, SapataFields, TubulacaoFields, VigaFields } from './GeometryArmaduraForms';
+import { CaixaConcretoFields, CaixaDaguaFields, PilarFields, SapataFields, TubulacaoFields, VigaFields } from './GeometryArmaduraForms';
 
 type Aba = 'editar' | 'quantitativos' | 'execucao';
 
@@ -67,6 +67,7 @@ export function ElementInspector({ elemento }: { elemento: BimElement }) {
           {elemento.tipo === 'viga_baldrame' && <VigaFields el={elemento} onChange={onChange} />}
           {elemento.tipo === 'tubulacao' && <TubulacaoFields el={elemento} onChange={onChange} />}
           {elemento.tipo === 'caixa_dagua' && <CaixaDaguaFields el={elemento} onChange={onChange} />}
+          {elemento.tipo === 'caixa_concreto' && <CaixaConcretoFields el={elemento} onChange={onChange} />}
 
           {(elemento.tipo === 'sapata' || elemento.tipo === 'pilar_arranque' || elemento.tipo === 'viga_baldrame') && (
             <TracoForm traco={elemento.traco} onChange={(traco) => onChange({ traco })} />
@@ -80,8 +81,10 @@ export function ElementInspector({ elemento }: { elemento: BimElement }) {
             <QuantitiesPanel q={calcularQuantitativo(elemento)} />
           ) : elemento.tipo === 'tubulacao' ? (
             <QuantitiesPanelTubulacao q={calcularQuantitativoTubulacao(elemento)} />
-          ) : (
+          ) : elemento.tipo === 'caixa_dagua' ? (
             <QuantitiesPanelCaixaDagua q={calcularQuantitativoCaixaDagua(elemento)} />
+          ) : (
+            <QuantitiesPanelCaixaConcreto q={calcularQuantitativoCaixaConcreto(elemento)} />
           )}
         </div>
       )}

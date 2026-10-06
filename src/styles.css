@@ -412,6 +412,14 @@ button:disabled {
   width: 30px;
 }
 
+.field-input select {
+  padding: 4px 6px;
+  background: #2a2e35;
+  border: 1px solid #3a3f47;
+  border-radius: 4px;
+  color: #fff;
+}
+
 .hint {
   font-size: 0.72rem;
   color: #8a919c;
@@ -616,6 +624,12 @@ button:disabled {
 
 .painel-resumo .col-titulo {
   color: #e7eaee;
+}
+
+.painel-resumo .col-sub {
+  padding-left: 14px;
+  color: #9aa2ad;
+  font-size: 0.7rem;
 }
 
 .painel-resumo .col-qtd {

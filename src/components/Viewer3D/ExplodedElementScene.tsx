@@ -1,16 +1,22 @@
 import { useState, type ReactNode } from 'react';
 import { Bounds, Html, Line } from '@react-three/drei';
-import type { BimElement, CaixaDagua, PilarArranque, Sapata, Tubulacao, VigaBaldrame } from '../../types';
+import type { BimElement, CaixaConcreto, CaixaDagua, PilarArranque, Sapata, Tubulacao, VigaBaldrame } from '../../types';
 import { calcularQuantitativo } from '../../lib/quantities';
-import { calcularQuantitativoCaixaDagua, calcularQuantitativoTubulacao } from '../../lib/hydro';
+import {
+  NOME_REDE,
+  NOME_SUBTIPO_CAIXA_CONCRETO,
+  calcularQuantitativoCaixaConcreto,
+  calcularQuantitativoCaixaDagua,
+  calcularQuantitativoTubulacao,
+} from '../../lib/hydro';
 import { calcularConcreto, calcularForma, calcularTroncoPiramide } from '../../lib/concrete';
 import { ConcretoBox } from './ConcretoBox';
 import { FormaBox, ESPESSURA_TABUA } from './FormaBox';
 import { TroncoConcreto, TroncoForma } from './TroncoMesh';
 import { GrupoArmaduraVisual } from './GrupoArmaduraVisual';
-import { TubulacaoMesh, CaixaDaguaMesh } from './HidrossanitarioMeshes';
+import { TubulacaoMesh, CaixaVolumeMesh } from './HidrossanitarioMeshes';
 import { CotaLinear, CotasCaixa } from './CotaLinear';
-import { corArmadura, corConcreto, corForma, corHidrossanitario } from './statusColor';
+import { corArmadura, corCaixaConcreto, corCaixaDagua, corConcreto, corForma, corTubulacao } from './statusColor';
 
 type ElementoEstrutural = Sapata | PilarArranque | VigaBaldrame;
 
@@ -72,21 +78,23 @@ interface NivelDef {
  * A câmera se ajusta sozinha (drei Bounds).
  */
 export function ExplodedElementScene({ elemento }: { elemento: BimElement }) {
-  if (elemento.tipo === 'tubulacao' || elemento.tipo === 'caixa_dagua') {
+  if (elemento.tipo === 'tubulacao' || elemento.tipo === 'caixa_dagua' || elemento.tipo === 'caixa_concreto') {
     return <ExplodedElementSceneHidro elemento={elemento} />;
   }
   return <ExplodedElementSceneEstrutural elemento={elemento} />;
 }
 
-/** Tubulação/caixa d'água não têm camadas pra explodir (sem fôrma/armadura/concreto separados) —
- * mostra só a peça isolada, com cota e card de quantitativo ao clicar. */
-function ExplodedElementSceneHidro({ elemento }: { elemento: Tubulacao | CaixaDagua }) {
+/** Tubulação/caixa d'água/caixa de concreto não têm camadas pra explodir (sem fôrma/armadura/
+ * concreto separados) — mostra só a peça isolada, com cota e card de quantitativo ao clicar. */
+function ExplodedElementSceneHidro({ elemento }: { elemento: Tubulacao | CaixaDagua | CaixaConcreto }) {
   const [ativo, setAtivo] = useState(false);
   const { geometria, tag } = elemento;
   const titulo =
     elemento.tipo === 'tubulacao'
-      ? `${tag} · Tubulação ⌀${elemento.diametroMm}mm`
-      : `${tag} · Caixa d'água`;
+      ? `${tag} · Tubulação ${NOME_REDE[elemento.rede]} ⌀${elemento.diametroMm}mm`
+      : elemento.tipo === 'caixa_dagua'
+        ? `${tag} · Caixa d'água`
+        : `${tag} · ${NOME_SUBTIPO_CAIXA_CONCRETO[elemento.subtipo]}`;
   const linhas =
     elemento.tipo === 'tubulacao'
       ? (() => {
@@ -97,18 +105,26 @@ function ExplodedElementSceneHidro({ elemento }: { elemento: Tubulacao | CaixaDa
             q.pesoConfiavel ? `${q.pesoEstimadoKg.toFixed(1)} kg (estimado)` : 'peso: sem tabela pro material',
           ];
         })()
-      : (() => {
-          const q = calcularQuantitativoCaixaDagua(elemento);
-          return [`${q.capacidadeLitros.toLocaleString('pt-BR')} L`, q.material];
-        })();
+      : elemento.tipo === 'caixa_dagua'
+        ? (() => {
+            const q = calcularQuantitativoCaixaDagua(elemento);
+            return [`${q.capacidadeLitros.toLocaleString('pt-BR')} L`, q.material];
+          })()
+        : (() => {
+            const q = calcularQuantitativoCaixaConcreto(elemento);
+            return [q.material, `${n(q.dimensoesM.comprimento)} × ${n(q.dimensoesM.largura)} × ${n(q.dimensoesM.altura)} m`];
+          })();
+
+  const cor =
+    elemento.tipo === 'tubulacao' ? corTubulacao(elemento) : elemento.tipo === 'caixa_dagua' ? corCaixaDagua(elemento) : corCaixaConcreto(elemento);
 
   return (
     <Bounds fit clip observe margin={1.25} key={elemento.id}>
       <group onClick={(e) => { e.stopPropagation(); setAtivo((v) => !v); }}>
         {elemento.tipo === 'tubulacao' ? (
-          <TubulacaoMesh comprimento={geometria.comprimento} diametroM={elemento.diametroMm / 1000} cor={corHidrossanitario(elemento)} />
+          <TubulacaoMesh comprimento={geometria.comprimento} diametroM={elemento.diametroMm / 1000} cor={cor} />
         ) : (
-          <CaixaDaguaMesh comprimento={geometria.comprimento} largura={geometria.largura} altura={geometria.altura} cor={corHidrossanitario(elemento)} />
+          <CaixaVolumeMesh comprimento={geometria.comprimento} largura={geometria.largura} altura={geometria.altura} cor={cor} />
         )}
         <RotuloCompacto posicao={[0, geometria.altura + 0.2, 0]} texto={titulo} onClick={() => setAtivo((v) => !v)} />
         {ativo && (

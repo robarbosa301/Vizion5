@@ -1,4 +1,4 @@
-import type { BimElement, PilarArranque, Sapata, TipoElemento, VigaBaldrame } from '../types';
+import type { BimElement, PilarArranque, RedeHidrossanitaria, Sapata, TipoElemento, VigaBaldrame } from '../types';
 import { calcularQuantitativo } from './quantities';
 import { calcularQuantitativoTubulacao } from './hydro';
 
@@ -79,32 +79,42 @@ export function calcularResumoEtapa(elementos: BimElement[]): ResumoEtapa {
 export interface ResumoHidrossanitario {
   qtdTrechos: number;
   comprimentoTotalM: number;
+  /** Comprimento total por rede — esgoto, água fria e pluvial são sistemas separados na obra,
+   * então o quantitativo precisa discriminar, não só somar tudo junto. */
+  comprimentoPorRedeM: Record<RedeHidrossanitaria, number>;
   qtdConexoes: number;
   pesoEstimadoKg: number;
   qtdCaixasDagua: number;
   capacidadeTotalLitros: number;
+  qtdCaixasConcreto: number;
 }
 
-/** Totais de hidrossanitário (tubulação + caixa d'água) — separado do resumo de fundação. */
+/** Totais de hidrossanitário (tubulação + caixa d'água + caixas de concreto) — separado do
+ * resumo de fundação. */
 export function calcularResumoHidrossanitario(elementos: BimElement[]): ResumoHidrossanitario {
   const r: ResumoHidrossanitario = {
     qtdTrechos: 0,
     comprimentoTotalM: 0,
+    comprimentoPorRedeM: { esgoto: 0, agua_fria: 0, pluvial: 0 },
     qtdConexoes: 0,
     pesoEstimadoKg: 0,
     qtdCaixasDagua: 0,
     capacidadeTotalLitros: 0,
+    qtdCaixasConcreto: 0,
   };
   for (const el of elementos) {
     if (el.tipo === 'tubulacao') {
       const q = calcularQuantitativoTubulacao(el);
       r.qtdTrechos += 1;
       r.comprimentoTotalM += q.comprimentoM;
+      r.comprimentoPorRedeM[q.rede] += q.comprimentoM;
       r.qtdConexoes += q.qtdConexoes;
       r.pesoEstimadoKg += q.pesoEstimadoKg;
     } else if (el.tipo === 'caixa_dagua') {
       r.qtdCaixasDagua += 1;
       r.capacidadeTotalLitros += el.capacidadeLitros;
+    } else if (el.tipo === 'caixa_concreto') {
+      r.qtdCaixasConcreto += 1;
     }
   }
   return r;

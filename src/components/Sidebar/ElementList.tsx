@@ -11,9 +11,10 @@ const ROTULOS: Record<TipoElemento, string> = {
   viga_baldrame: 'Viga baldrame',
   tubulacao: 'Tubulação',
   caixa_dagua: "Caixa d'água",
+  caixa_concreto: 'Caixa de concreto',
 };
 
-const ORDEM_TIPO: TipoElemento[] = ['sapata', 'pilar_arranque', 'viga_baldrame', 'tubulacao', 'caixa_dagua'];
+const ORDEM_TIPO: TipoElemento[] = ['sapata', 'pilar_arranque', 'viga_baldrame', 'tubulacao', 'caixa_dagua', 'caixa_concreto'];
 
 function pesoDoElemento(el: BimElement): number {
   if (el.tipo === 'sapata' || el.tipo === 'pilar_arranque' || el.tipo === 'viga_baldrame') {
@@ -55,6 +56,7 @@ export function ElementList() {
       viga_baldrame: 'VB',
       tubulacao: 'T',
       caixa_dagua: 'CX',
+      caixa_concreto: 'CC',
     };
     const tag = novaTag.trim() || `${prefixos[tipo]}${elementos.length + 1}`;
     adicionar(tipo, tag);
@@ -106,6 +108,7 @@ export function ElementList() {
           <button onClick={() => handleAdicionar('viga_baldrame')}>+ Viga baldrame</button>
           <button onClick={() => handleAdicionar('tubulacao')}>+ Tubulação</button>
           <button onClick={() => handleAdicionar('caixa_dagua')}>+ Caixa d'água</button>
+          <button onClick={() => handleAdicionar('caixa_concreto')}>+ Caixa de concreto</button>
         </div>
       </div>
 
