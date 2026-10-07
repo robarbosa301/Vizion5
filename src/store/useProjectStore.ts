@@ -72,31 +72,50 @@ function persistirObraAtiva(uid: string | null, obraId: string | null, nome: str
   );
 }
 
+/** Já existe algum elemento do tipo `tipo` pousado nessa posição X/Z (mesmo pé, dentro de uma
+ * tolerância pequena)? Usado pra não empilhar vários pilares na mesma sapata — ver comentário de
+ * `posicaoPadraoParaNovoElemento` abaixo. */
+function temElementoEm(tipo: BimElement['tipo'], x: number, z: number, elementos: BimElement[]): boolean {
+  const TOLERANCIA_M = 0.1;
+  return elementos.some((e) => e.tipo === tipo && Math.hypot(e.posicao.x - x, e.posicao.z - z) < TOLERANCIA_M);
+}
+
 /**
  * Posição inicial de um elemento recém-adicionado pelo botão "+": pilar de arranque nasce em
- * cima da ÚLTIMA sapata adicionada (mesmo X/Z, Y no topo dela — já somando o tronco, quando
- * existe) e viga baldrame nasce em cima do ÚLTIMO pilar. Sem isso, todo elemento novo nascia em
- * Y=0 e X crescente, sem nenhuma relação com os outros já lançados — um pilar adicionado logo
- * depois de uma sapata não ficava apoiado nela, e a armadura de ancoragem (que desce da base do
- * pilar) ficava pendurada no vazio, sem nenhuma sapata ali embaixo pra receber. Só um ponto de
- * partida sensato: a posição continua 100% editável depois, e não tenta adivinhar qual sapata o
- * usuário "quis dizer" além da última lançada.
+ * cima de uma sapata que ainda não tem pilar (mesmo X/Z, Y no topo dela — já somando o tronco,
+ * quando existe) e viga baldrame nasce em cima de um pilar que ainda não tem viga. Sem isso, todo
+ * elemento novo nascia em Y=0 e X crescente, sem nenhuma relação com os outros já lançados — um
+ * pilar adicionado logo depois de uma sapata não ficava apoiado nela, e a armadura de ancoragem
+ * (que desce da base do pilar) ficava pendurada no vazio, sem nenhuma sapata ali embaixo pra
+ * receber.
+ *
+ * Importante usar a sapata/pilar "ainda sem par", não simplesmente o último lançado: alguém que
+ * clica "+ Sapata" três vezes seguidas e só depois "+ Pilar" três vezes (um jeito natural de
+ * testar o app) faria os três pilares nascerem empilhados todos na MESMA (última) sapata, com as
+ * outras duas sapatas sobrando vazias — exatamente o tipo de "ferro flutuando" que motivou essa
+ * função existir, só que causado por ela mesma. Escolhendo sempre a sapata/pilar mais recente que
+ * ainda não tem um elemento do tipo de cima, cada clique casa com uma base nova (na ordem em que
+ * foram lançadas), e só cai no fallback (posição antiga) quando toda base disponível já tem par.
  */
 function posicaoPadraoParaNovoElemento(
   tipo: BimElement['tipo'],
   elementosAtuais: BimElement[],
 ): { x: number; y: number; z: number } | null {
   if (tipo === 'pilar_arranque') {
-    const ultimaSapata = [...elementosAtuais].reverse().find((e): e is Sapata => e.tipo === 'sapata');
-    if (!ultimaSapata) return null;
-    const topo = ultimaSapata.posicao.y + ultimaSapata.geometria.altura + (ultimaSapata.tronco?.altura ?? 0);
-    return { x: ultimaSapata.posicao.x, y: topo, z: ultimaSapata.posicao.z };
+    const sapataLivre = [...elementosAtuais]
+      .reverse()
+      .find((e): e is Sapata => e.tipo === 'sapata' && !temElementoEm('pilar_arranque', e.posicao.x, e.posicao.z, elementosAtuais));
+    if (!sapataLivre) return null;
+    const topo = sapataLivre.posicao.y + sapataLivre.geometria.altura + (sapataLivre.tronco?.altura ?? 0);
+    return { x: sapataLivre.posicao.x, y: topo, z: sapataLivre.posicao.z };
   }
   if (tipo === 'viga_baldrame') {
-    const ultimoPilar = [...elementosAtuais].reverse().find((e): e is PilarArranque => e.tipo === 'pilar_arranque');
-    if (!ultimoPilar) return null;
-    const topo = ultimoPilar.posicao.y + ultimoPilar.geometria.altura;
-    return { x: ultimoPilar.posicao.x, y: topo, z: ultimoPilar.posicao.z };
+    const pilarLivre = [...elementosAtuais]
+      .reverse()
+      .find((e): e is PilarArranque => e.tipo === 'pilar_arranque' && !temElementoEm('viga_baldrame', e.posicao.x, e.posicao.z, elementosAtuais));
+    if (!pilarLivre) return null;
+    const topo = pilarLivre.posicao.y + pilarLivre.geometria.altura;
+    return { x: pilarLivre.posicao.x, y: topo, z: pilarLivre.posicao.z };
   }
   return null;
 }
