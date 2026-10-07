@@ -16,6 +16,26 @@ interface Props {
 }
 
 /**
+ * Extensão vertical REAL do que é desenhado pra um elemento — nem sempre é só `posicao.y` até
+ * `posicao.y + geometria.altura`: o pilar de arranque desenha a armadura de ancoragem descendo
+ * `comprimentoAncoragem` ABAIXO da própria base (embutida na sapata) e a sapata desenha o tronco
+ * de pirâmide ACIMA do bloco da base. Sem considerar essas extensões, o foco da câmera (abaixo)
+ * mirava e dimensionava o enquadramento só pelo bloco principal — ao selecionar um pilar e dar
+ * zoom, a ancoragem ficava fora do que a câmera considerava "o elemento inteiro": o enquadramento
+ * cortava bem onde a barra desce pra dentro da sapata, deixando-a com a aparência de estar
+ * flutuando no vazio (a sapata, que a ancoragem realmente alcança, ficava fora da tela).
+ */
+function limitesVerticais(el: BimElement): { min: number; max: number } {
+  if (el.tipo === 'pilar_arranque') {
+    return { min: el.posicao.y - el.armadura.comprimentoAncoragem / 100, max: el.posicao.y + el.geometria.altura };
+  }
+  if (el.tipo === 'sapata') {
+    return { min: el.posicao.y, max: el.posicao.y + el.geometria.altura + (el.tronco?.altura ?? 0) };
+  }
+  return { min: el.posicao.y, max: el.posicao.y + el.geometria.altura };
+}
+
+/**
  * Ao selecionar um elemento (clique no 3D ou na lista lateral), gira a câmera pra centralizar
  * nele — sem isso, um elemento selecionado longe do ponto onde a câmera já está olhando fica
  * destacado (contorno amarelo) mas fora do enquadramento, e passa despercebido. Também ajusta a
@@ -36,13 +56,14 @@ function FocoNaSelecao({ elementos, elementoSelecionadoId }: { elementos: BimEle
       alvo.current = null;
       return;
     }
-    alvo.current = new Vector3(el.posicao.x, el.posicao.y + el.geometria.altura / 2, el.posicao.z);
+    const { min: yMin, max: yMax } = limitesVerticais(el);
+    alvo.current = new Vector3(el.posicao.x, (yMin + yMax) / 2, el.posicao.z);
 
     const controls = controlsRef.current;
     const distanciaAtual = controls ? camera.position.distanceTo(controls.target) : 0;
     if (distanciaAtual > 0.05) direcao.current.copy(camera.position).sub(controls!.target).normalize();
 
-    const tamanho = Math.max(el.geometria.comprimento, el.geometria.largura, el.geometria.altura, 0.3);
+    const tamanho = Math.max(el.geometria.comprimento, el.geometria.largura, yMax - yMin, 0.3);
     const distanciaIdeal = Math.min(Math.max(tamanho * 6, 2.5), 12);
     // só corrige o zoom se estiver bem fora da faixa razoável pro tamanho da peça — preserva o
     // zoom do usuário quando ele já está numa distância sensata.
