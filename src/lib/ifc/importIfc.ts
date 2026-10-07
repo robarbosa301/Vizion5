@@ -504,6 +504,37 @@ export function importarIfc(texto: string, storeyIdEscolhido?: number): Resultad
     }
   }
 
+  // Ancoragem do pilar na sapata: o trecho embutido do IfcColumn (usado acima só pra achar onde o
+  // arranque visível começa) representa a modelagem 3D da coluna, não o comprimento real da barra
+  // de ancoragem — na prática de obra, a armadura longitudinal do pilar desce por TODA a
+  // espessura da sapata (passando por cima/dentro da própria malha inferior da sapata) e faz o
+  // gancho perto do fundo dela, não só até a superfície de cima. Sem corrigir isso, a ancoragem
+  // desenhada ficava rasa — enganchando acima da malha da sapata, não "dentro" dela de verdade.
+  // Aqui, pra cada pilar, acha a sapata mais próxima em planta (X/Z) e estende a ancoragem até
+  // perto da face inferior dela (respeitando o cobrimento da própria sapata).
+  const sapatasImportadas = elementos.filter((e): e is Sapata => e.tipo === 'sapata');
+  if (sapatasImportadas.length > 0) {
+    for (const el of elementos) {
+      if (el.tipo !== 'pilar_arranque') continue;
+      const pilar = el as PilarArranque;
+      let sapataMaisProxima: Sapata | undefined;
+      let menorDistancia = Infinity;
+      for (const s of sapatasImportadas) {
+        const distancia = Math.hypot(s.posicao.x - pilar.posicao.x, s.posicao.z - pilar.posicao.z);
+        if (distancia < menorDistancia) {
+          menorDistancia = distancia;
+          sapataMaisProxima = s;
+        }
+      }
+      if (!sapataMaisProxima) continue;
+      const cobrimentoSapataM = sapataMaisProxima.armadura.cobrimento / 100;
+      const ancoragemRealM = pilar.posicao.y - sapataMaisProxima.posicao.y - cobrimentoSapataM;
+      if (ancoragemRealM > 0.01) {
+        pilar.armadura.comprimentoAncoragem = ancoragemRealM * 100;
+      }
+    }
+  }
+
   // Tubulação (IfcPipeSegment) e caixa d'água/caixa de concreto (IfcTank) — disciplina
   // hidrossanitária, sem concreto/fôrma/armadura. O diâmetro nominal/externo (DN/DE) vem do
   // próprio nome do trecho quando presente (ex. "Ramal banheiro K01-P1 DN100") — mais confiável

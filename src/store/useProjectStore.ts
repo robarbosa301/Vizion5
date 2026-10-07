@@ -100,14 +100,21 @@ function temElementoEm(tipo: BimElement['tipo'], x: number, z: number, elementos
 function posicaoPadraoParaNovoElemento(
   tipo: BimElement['tipo'],
   elementosAtuais: BimElement[],
-): { x: number; y: number; z: number } | null {
+): { posicao: { x: number; y: number; z: number }; comprimentoAncoragemCm?: number } | null {
   if (tipo === 'pilar_arranque') {
     const sapataLivre = [...elementosAtuais]
       .reverse()
       .find((e): e is Sapata => e.tipo === 'sapata' && !temElementoEm('pilar_arranque', e.posicao.x, e.posicao.z, elementosAtuais));
     if (!sapataLivre) return null;
     const topo = sapataLivre.posicao.y + sapataLivre.geometria.altura + (sapataLivre.tronco?.altura ?? 0);
-    return { x: sapataLivre.posicao.x, y: topo, z: sapataLivre.posicao.z };
+    // A ancoragem precisa atravessar toda a espessura da sapata (base + tronco) e enganchar perto
+    // do fundo dela — não parar na superfície de cima — mesmo ajuste feito na importação de IFC
+    // (ver comentário em importIfc.ts). Sem isso, um pilar novo nascia com os 40cm padrão da
+    // fábrica, que raramente bastam pra atravessar uma sapata de verdade.
+    const cobrimentoSapataM = sapataLivre.armadura.cobrimento / 100;
+    const profundidadeTotalM = topo - sapataLivre.posicao.y;
+    const comprimentoAncoragemCm = Math.max(1, (profundidadeTotalM - cobrimentoSapataM) * 100);
+    return { posicao: { x: sapataLivre.posicao.x, y: topo, z: sapataLivre.posicao.z }, comprimentoAncoragemCm };
   }
   if (tipo === 'viga_baldrame') {
     const pilarLivre = [...elementosAtuais]
@@ -115,7 +122,7 @@ function posicaoPadraoParaNovoElemento(
       .find((e): e is PilarArranque => e.tipo === 'pilar_arranque' && !temElementoEm('viga_baldrame', e.posicao.x, e.posicao.z, elementosAtuais));
     if (!pilarLivre) return null;
     const topo = pilarLivre.posicao.y + pilarLivre.geometria.altura;
-    return { x: pilarLivre.posicao.x, y: topo, z: pilarLivre.posicao.z };
+    return { posicao: { x: pilarLivre.posicao.x, y: topo, z: pilarLivre.posicao.z } };
   }
   return null;
 }
@@ -277,8 +284,11 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
   adicionarElemento: (tipo, tag) => {
     const state = get();
     const offset = state.elementos.length * 1.5;
-    const posicao = posicaoPadraoParaNovoElemento(tipo, state.elementos) ?? { x: offset, y: 0, z: 0 };
-    const novo = criarElementoPadrao(tipo, tag, posicao);
+    const padrao = posicaoPadraoParaNovoElemento(tipo, state.elementos);
+    const novo = criarElementoPadrao(tipo, tag, padrao?.posicao ?? { x: offset, y: 0, z: 0 });
+    if (novo.tipo === 'pilar_arranque' && padrao?.comprimentoAncoragemCm !== undefined) {
+      novo.armadura.comprimentoAncoragem = padrao.comprimentoAncoragemCm;
+    }
     const elementos = [...state.elementos, novo];
     set({ elementos, elementoSelecionadoId: novo.id });
     persistirObraAtiva(state.uidAtual, state.obraAtivaId, state.nomeObra, elementos);
