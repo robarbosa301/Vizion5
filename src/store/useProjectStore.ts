@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { collection, deleteDoc, doc, onSnapshot, orderBy, query, setDoc, type Unsubscribe } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import type { BimElement, IdEtapa } from '../types';
+import type { BimElement, IdEtapa, PilarArranque, Sapata } from '../types';
 import { criarElementoPadrao } from '../lib/factories';
 
 export interface ObraSalva {
@@ -70,6 +70,35 @@ function persistirObraAtiva(uid: string | null, obraId: string | null, nome: str
   setDoc(obraDocRef(uid, obraId), { nome, elementos, atualizadaEm }, { merge: true }).catch((e) =>
     console.error('Falha ao salvar obra no Firestore:', e),
   );
+}
+
+/**
+ * Posição inicial de um elemento recém-adicionado pelo botão "+": pilar de arranque nasce em
+ * cima da ÚLTIMA sapata adicionada (mesmo X/Z, Y no topo dela — já somando o tronco, quando
+ * existe) e viga baldrame nasce em cima do ÚLTIMO pilar. Sem isso, todo elemento novo nascia em
+ * Y=0 e X crescente, sem nenhuma relação com os outros já lançados — um pilar adicionado logo
+ * depois de uma sapata não ficava apoiado nela, e a armadura de ancoragem (que desce da base do
+ * pilar) ficava pendurada no vazio, sem nenhuma sapata ali embaixo pra receber. Só um ponto de
+ * partida sensato: a posição continua 100% editável depois, e não tenta adivinhar qual sapata o
+ * usuário "quis dizer" além da última lançada.
+ */
+function posicaoPadraoParaNovoElemento(
+  tipo: BimElement['tipo'],
+  elementosAtuais: BimElement[],
+): { x: number; y: number; z: number } | null {
+  if (tipo === 'pilar_arranque') {
+    const ultimaSapata = [...elementosAtuais].reverse().find((e): e is Sapata => e.tipo === 'sapata');
+    if (!ultimaSapata) return null;
+    const topo = ultimaSapata.posicao.y + ultimaSapata.geometria.altura + (ultimaSapata.tronco?.altura ?? 0);
+    return { x: ultimaSapata.posicao.x, y: topo, z: ultimaSapata.posicao.z };
+  }
+  if (tipo === 'viga_baldrame') {
+    const ultimoPilar = [...elementosAtuais].reverse().find((e): e is PilarArranque => e.tipo === 'pilar_arranque');
+    if (!ultimoPilar) return null;
+    const topo = ultimoPilar.posicao.y + ultimoPilar.geometria.altura;
+    return { x: ultimoPilar.posicao.x, y: topo, z: ultimoPilar.posicao.z };
+  }
+  return null;
 }
 
 /**
@@ -229,7 +258,8 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
   adicionarElemento: (tipo, tag) => {
     const state = get();
     const offset = state.elementos.length * 1.5;
-    const novo = criarElementoPadrao(tipo, tag, { x: offset, y: 0, z: 0 });
+    const posicao = posicaoPadraoParaNovoElemento(tipo, state.elementos) ?? { x: offset, y: 0, z: 0 };
+    const novo = criarElementoPadrao(tipo, tag, posicao);
     const elementos = [...state.elementos, novo];
     set({ elementos, elementoSelecionadoId: novo.id });
     persistirObraAtiva(state.uidAtual, state.obraAtivaId, state.nomeObra, elementos);
